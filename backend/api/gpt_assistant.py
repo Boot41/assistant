@@ -11,7 +11,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class GPTAssistant:
-    def __init__(self, user_id):
+    def __init__(self, user_id=None):
+        self.user_id = user_id
         self.api_key = os.getenv('GROQ_API_KEY')
         self.user_progress = UserProgress.objects.get_or_create(user_id=user_id)[0]
         self.tour_steps = list(TourStep.objects.all().order_by('order'))
@@ -23,8 +24,18 @@ class GPTAssistant:
         return response
 
     def get_context(self):
-        current_step = self.user_progress.current_step
-        next_step = TourStep.objects.filter(order__gt=current_step.order).order_by('order').first()
+        if self.user_id is None:
+            return {}  # Return empty context if no user_id is provided
+        
+        user_progress = UserProgress.objects.get(user_id=self.user_id)
+        current_step = user_progress.current_step
+
+        if current_step is None:
+            # If there's no current step, get the first step
+            next_step = TourStep.objects.order_by('order').first()
+        else:
+            next_step = TourStep.objects.filter(order__gt=current_step.order).order_by('order').first()
+
         context = f"You are a tour guide assistant. The current tour step is '{current_step.title}' on page '{current_step.page_name}'. "
         if next_step:
             context += f"The next step will be '{next_step.title}' on page '{next_step.page_name}'. "

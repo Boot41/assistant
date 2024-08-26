@@ -117,10 +117,14 @@ def start_tour(request):
     data = json.loads(request.body)
     user_id = data.get('user_id')
     first_step = TourStep.objects.order_by('order').first()
-    UserProgress.objects.update_or_create(
+    user_progress, created = UserProgress.objects.get_or_create(
         user_id=user_id,
         defaults={'current_step': first_step}
     )
+    if not created and user_progress.current_step is None:
+        user_progress.current_step = first_step
+        user_progress.save()
+    
     return JsonResponse({
         "message": "Tour started",
         "current_step": {
