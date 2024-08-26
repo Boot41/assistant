@@ -35,7 +35,7 @@ class UserProgress(models.Model):
 class Quiz(models.Model):
     tour_step = models.ForeignKey(TourStep, on_delete=models.CASCADE, related_name='quizzes')
     question = models.TextField()
-    options = models.JSONField()  # Store options as a JSON array
+    options = models.JSONField()
     correct_answer = models.CharField(max_length=200)
 
     def __str__(self):

@@ -151,7 +151,14 @@ def next_tour_step(request):
         if next_step:
             user_progress.current_step = next_step
             user_progress.save()
-            quiz = Quiz.objects.filter(tour_step=next_step).first()
+            
+            # Check if Quiz model exists before querying
+            from django.apps import apps
+            if apps.is_installed('api') and apps.get_model('api', 'Quiz'):
+                quiz = Quiz.objects.filter(tour_step=next_step).first()
+            else:
+                quiz = None
+            
             total_steps = TourStep.objects.count()
             progress_percentage = (next_step.order / total_steps) * 100
             
