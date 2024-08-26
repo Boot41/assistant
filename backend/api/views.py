@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .models import TourStep, Content, UserProgress, Quiz
+from .models import TourStep, Content, UserProgress, Quiz, UserPoints
 import json
 from .gpt_assistant import GPTAssistant
 from django.db.models import Avg, F, Count
@@ -54,26 +54,47 @@ def extract_actions(message):
     if "show image" in message.lower():
         image_id = message.split("show image")[-1].strip()
         actions.append({"type": "show_image", "content": f"/api/content/image/{image_id}/"})
+    if "show blog content" in message.lower():
+        actions.append({"type": "show_blog_content"})
     return actions
 
 @require_http_methods(["GET"])
 def get_tour_progress(request):
     user_id = request.GET.get('user_id')
-    user_progress = UserProgress.objects.get(user_id=user_id)
-    total_steps = TourStep.objects.count()
-    current_step_number = TourStep.objects.filter(order__lte=user_progress.current_step.order).count()
-    return JsonResponse({
-        "current_step": {
-            "title": user_progress.current_step.title,
-            "description": user_progress.current_step.description,
-            "page_name": user_progress.current_step.page_name,
-            "section_id": user_progress.current_step.section_id,
-            "image": user_progress.current_step.image.url if user_progress.current_step.image else None,
-            "video": user_progress.current_step.video.url if user_progress.current_step.video else None
-        },
-        "total_steps": total_steps,
-        "progress_percentage": (current_step_number / total_steps) * 100
-    })
+    try:
+        total_steps = TourStep.objects.count()
+        if total_steps == 0:
+            return JsonResponse({
+                "error": "No tour steps available",
+                "total_steps": 0,
+                "message": "Please add tour steps to the database."
+            }, status=404)
+
+        user_progress, created = UserProgress.objects.get_or_create(user_id=user_id)
+        if created or user_progress.current_step is None:
+            first_step = TourStep.objects.order_by('order').first()
+            if first_step:
+                user_progress.current_step = first_step
+                user_progress.save()
+            else:
+                return JsonResponse({"error": "No tour steps available", "total_steps": 0}, status=404)
+        
+        current_step_number = TourStep.objects.filter(order__lte=user_progress.current_step.order).count()
+        
+        return JsonResponse({
+            "current_step": {
+                "title": user_progress.current_step.title,
+                "description": user_progress.current_step.description,
+                "page_name": user_progress.current_step.page_name,
+                "section_id": user_progress.current_step.section_id,
+                "content_type": user_progress.current_step.content_type,
+                "content": user_progress.current_step.content
+            },
+            "total_steps": total_steps,
+            "progress_percentage": (current_step_number / total_steps) * 100 if total_steps > 0 else 0
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 @require_http_methods(["GET"])
 def get_content(request, content_type, content_id):
@@ -113,36 +134,83 @@ def gpt_assistant_view(request):
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-@require_http_methods(["GET"])
-def navigate_to_page(request, page_name):
-    # This function might need to be implemented on the frontend
-    # Here we just return the page name for demonstration
-    return JsonResponse({"page_name": page_name})
-
-@require_http_methods(["POST"])
 @csrf_exempt
+@require_http_methods(["POST"])
+def navigate_to_page(request):
+    data = json.loads(request.body)
+    user_id = data.get('user_id')
+    page_name = data.get('page_name')
+    
+    user_progress = UserProgress.objects.get(user_id=user_id)
+    next_step = TourStep.objects.filter(page_name__iexact=page_name).order_by('order').first()
+    
+    total_steps = TourStep.objects.count()
+    
+    if next_step:
+        user_progress.current_step = next_step
+        user_progress.save()
+        
+        progress_percentage = (next_step.order / total_steps) * 100
+        
+        return JsonResponse({
+            "message": f"Navigated to {page_name}",
+            "current_step": {
+                "id": next_step.id,
+                "title": next_step.title,
+                "description": next_step.description,
+                "page_name": next_step.page_name,
+                "section_id": next_step.section_id,
+                "content_type": next_step.content_type,
+                "content": next_step.content,
+                "order": next_step.order
+            },
+            "progress_percentage": progress_percentage
+        })
+    else:
+        progress_percentage = (user_progress.current_step.order / total_steps) * 100 if user_progress.current_step else 0
+        return JsonResponse({
+            "message": f"No tour step found for page {page_name}",
+            "current_step": None,
+            "progress_percentage": progress_percentage
+    })
+
+@csrf_exempt
+@require_http_methods(["POST"])
 def start_tour(request):
     data = json.loads(request.body)
     user_id = data.get('user_id')
+
+    total_steps = TourStep.objects.count()
+    if total_steps == 0:
+        return JsonResponse({
+            "message": "No tour steps available. Please add tour steps to the database.",
+            "tour_started": False,
+            "total_steps": 0
+        }, status=400)
+
     first_step = TourStep.objects.order_by('order').first()
     user_progress, created = UserProgress.objects.get_or_create(
         user_id=user_id,
         defaults={'current_step': first_step}
     )
+
     if not created and user_progress.current_step is None:
         user_progress.current_step = first_step
         user_progress.save()
-    
+
     return JsonResponse({
-        "message": "Tour started",
+        "message": "Tour started successfully",
+        "tour_started": True,
         "current_step": {
+            "id": first_step.id,
             "title": first_step.title,
             "description": first_step.description,
             "page_name": first_step.page_name,
-            "section_id": first_step.section_id,
-            "image": first_step.image.url if first_step.image else None,
-            "video": first_step.video.url if first_step.video else None
-        }
+            "order": first_step.order,
+            "content_type": first_step.content_type,
+            "content": first_step.content
+        },
+        "total_steps": total_steps
     })
 
 @require_http_methods(["POST"])
@@ -164,38 +232,31 @@ def next_tour_step(request):
             user_progress.current_step = next_step
             user_progress.save()
             
-            # Check if Quiz model exists before querying
-            from django.apps import apps
-            if apps.is_installed('api') and apps.get_model('api', 'Quiz'):
-                quiz = Quiz.objects.filter(tour_step=next_step).first()
-            else:
-                quiz = None
-            
             total_steps = TourStep.objects.count()
             progress_percentage = (next_step.order / total_steps) * 100
             
             return JsonResponse({
                 "message": "Next step",
                 "current_step": {
+                    "id": next_step.id,
                     "title": next_step.title,
                     "description": next_step.description,
                     "page_name": next_step.page_name,
                     "section_id": next_step.section_id,
-                    "image": next_step.image.url if next_step.image else None,
-                    "video": next_step.video.url if next_step.video else None
+                    "content_type": next_step.content_type,
+                    "content": next_step.content,
+                    "order": next_step.order
                 },
-                "quiz_question": {
-                    "id": quiz.id,
-                    "question": quiz.question,
-                    "options": quiz.options
-                } if quiz else None,
                 "progress_percentage": progress_percentage
             })
         else:
-            return JsonResponse({"message": "Tour completed"})
+            return JsonResponse({
+                "message": "Tour completed",
+                "progress_percentage": 100
+            })
     except Exception as e:
-        logger.error(f"Error in next_tour_step: {str(e)}", exc_info=True)
-        return JsonResponse({'error': 'An error occurred while fetching the next step'}, status=500)
+        logger.error(f"Error in next_tour_step: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 @require_http_methods(["GET"])
 def get_tour_analytics(request):
@@ -224,8 +285,8 @@ def get_all_tour_steps(request):
         "description": step.description,
         "page_name": step.page_name,
         "section_id": step.section_id,
-        "image": step.image.url if step.image else None,
-        "video": step.video.url if step.video else None
+        "content_type": step.content_type,
+        "content": step.content
     } for step in steps], safe=False)
 
 @require_http_methods(["POST"])
@@ -246,8 +307,8 @@ def go_to_step(request):
             "description": step.description,
             "page_name": step.page_name,
             "section_id": step.section_id,
-            "image": step.image.url if step.image else None,
-            "video": step.video.url if step.video else None
+            "content_type": step.content_type,
+            "content": step.content
         },
         "progress_percentage": (step_order / total_steps) * 100
     })
@@ -260,9 +321,62 @@ def handle_quiz_answer(request):
     question_id = data.get('question_id')
     answer = data.get('answer')
     
-    # Here you would implement the logic to check the answer and provide feedback
-    # For now, we'll just return a simple response
+    quiz = Quiz.objects.get(id=question_id)
+    is_correct = answer == quiz.correct_answer
+    
+    user_points, _ = UserPoints.objects.get_or_create(user_id=user_id)
+    if is_correct:
+        user_points.points += 10
+        user_points.save()
     
     return JsonResponse({
-        "feedback": f"Your answer '{answer}' has been recorded. Thank you for participating in the quiz!"
+        "is_correct": is_correct,
+        "feedback": "Correct! You earned 10 points." if is_correct else "Sorry, that's not correct. Try again!",
+        "current_points": user_points.points
     })
+
+@require_http_methods(["GET"])
+def get_user_points(request):
+    user_id = request.GET.get('user_id')
+    user_points, _ = UserPoints.objects.get_or_create(user_id=user_id)
+    return JsonResponse({"points": user_points.points})
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def previous_tour_step(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        
+        user_progress = UserProgress.objects.get(user_id=user_id)
+        
+        previous_step = TourStep.objects.filter(order__lt=user_progress.current_step.order).order_by('-order').first()
+        
+        if previous_step:
+            user_progress.current_step = previous_step
+            user_progress.save()
+            
+            total_steps = TourStep.objects.count()
+            progress_percentage = (previous_step.order / total_steps) * 100
+            
+            return JsonResponse({
+                "message": "Previous step",
+                "current_step": {
+                    "id": previous_step.id,
+                    "title": previous_step.title,
+                    "description": previous_step.description,
+                    "page_name": previous_step.page_name,
+                    "section_id": previous_step.section_id,
+                    "content_type": previous_step.content_type,
+                    "content": previous_step.content,
+                    "order": previous_step.order
+                },
+                "progress_percentage": progress_percentage
+            })
+        else:
+            return JsonResponse({
+                "message": "No previous step available",
+                "progress_percentage": 0
+            })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

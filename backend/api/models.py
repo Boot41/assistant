@@ -1,13 +1,18 @@
 from django.db import models
 
 class TourStep(models.Model):
+    CONTENT_TYPES = (
+        ('video', 'Video'),
+        ('image', 'Image'),
+        ('blog', 'Blog'),
+    )
     order = models.IntegerField(unique=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     page_name = models.CharField(max_length=100)
     section_id = models.CharField(max_length=100, blank=True, null=True)
-    image = models.ImageField(upload_to='tour_images', null=True, blank=True)
-    video = models.FileField(upload_to='tour_videos', null=True, blank=True)
+    content_type = models.CharField(max_length=5, choices=CONTENT_TYPES, default='blog')
+    content = models.TextField(default='')
 
     def __str__(self):
         return f"{self.order}. {self.title}"
@@ -40,3 +45,10 @@ class Quiz(models.Model):
 
     def __str__(self):
         return f"Quiz for {self.tour_step.title}"
+
+class UserPoints(models.Model):
+    user_id = models.CharField(max_length=100, unique=True)
+    points = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"User {self.user_id} - Points: {self.points}"

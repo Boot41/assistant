@@ -1,75 +1,136 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './App.css'
-import TourAnalytics from './components/TourAnalytics';
+import gsap from 'gsap';
 
 function App() {
+  const appStyle = {
+    color: '#ffffff'  // White text for better contrast on dark background
+  };
+
+  const tourTextStyle = {
+    color: '#4da6ff'  // Lighter blue color for better visibility
+  };
+
+  const chatStyle = {
+    color: '#000000'  // Black text for chat messages (assuming light background)
+  };
+
   const [tourStep, setTourStep] = useState(null)
   const [userInput, setUserInput] = useState('')
   const [chatHistory, setChatHistory] = useState([])
   const [currentPage, setCurrentPage] = useState('Home')
-  const [showMedia, setShowMedia] = useState(false)
   const [mediaContent, setMediaContent] = useState(null)
   const [tourProgress, setTourProgress] = useState(0)
   const [allTourSteps, setAllTourSteps] = useState([])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [quizActive, setQuizActive] = useState(false)
   const [quizQuestion, setQuizQuestion] = useState(null)
+  const [error, setError] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     getTourProgress()
     getAllTourSteps()
+    startTour()  // Add this line if you want the tour to start automatically
   }, [])
 
   const getAllTourSteps = async () => {
     try {
       const res = await axios.get('http://localhost:8000/api/tour/steps/')
       setAllTourSteps(res.data)
+      if (res.data.length === 0) {
+        setError('No tour steps available. Please add some tour steps.')
+      }
     } catch (error) {
-      console.error('Error getting tour steps:', error)
+      console.error('Error getting tour steps:', error.response?.data || error.message)
+      setError('Failed to fetch tour steps. Please try again.')
     }
   }
 
   const getTourProgress = async () => {
     try {
       const res = await axios.get('http://localhost:8000/api/tour/progress/', { params: { user_id: 'test_user' } })
-      setTourStep(res.data.current_step)
-      setTourProgress(res.data.progress_percentage)
+      if (res.data.current_step && res.data.progress_percentage !== undefined) {
+        setTourStep(res.data.current_step)
+        setTourProgress(res.data.progress_percentage)
+      } else if (res.data.total_steps === 0) {
+        setError(res.data.message || 'No tour steps available. Please add some tour steps.')
+      } else {
+        console.error('Invalid response format for tour progress')
+        setError('Failed to fetch tour progress. Please try again.')
+      }
     } catch (error) {
-      console.error('Error getting tour progress:', error)
+      console.error('Error getting tour progress:', error.response?.data || error.message)
+      setError(error.response?.data?.message || 'Failed to fetch tour progress. Please try again.')
     }
   }
 
   const handleUserInput = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
       const res = await axios.post('http://localhost:8000/api/tour-guide/', {
         user_id: 'test_user',
         user_input: userInput,
-        current_page: currentPage
-      })
+        current_page: currentPage,
+        current_step: tourStep ? tourStep.order : null
+      });
       setChatHistory(prevHistory => [...prevHistory, 
         { role: 'user', content: userInput },
         { role: 'assistant', content: res.data.response }
-      ])
-      handleActions(res.data.actions)
-      setUserInput('')
+      ]);
+      handleActions(res.data.actions);
+
+      // Check if the user input contains a navigation request
+      const navigationMatch = userInput.match(/navigate to (\w+)/i);
+      if (navigationMatch) {
+        const pageName = navigationMatch[1];
+        await navigateToPage(pageName);
+      }
+
+      setUserInput('');
     } catch (error) {
-      console.error('Error processing interaction:', error)
+      console.error('Error processing interaction:', error);
+      setError('Failed to process your input. Please try again.');
     }
-  }
+  };
+
+  const navigateToPage = async (pageName) => {
+    try {
+      const res = await axios.post('http://localhost:8000/api/tour/navigate/', {
+        user_id: 'test_user',
+        page_name: pageName
+      });
+      if (res.data.current_step) {
+        setTourStep(res.data.current_step);
+        setCurrentPage(res.data.current_step.page_name);
+        setTourProgress(res.data.progress_percentage);
+      }
+    } catch (error) {
+      console.error('Error navigating to page:', error);
+      setError('Failed to navigate to the requested page. Please try again.');
+    }
+  };
 
   const startTour = async () => {
+    setIsLoading(true);
     try {
-      const res = await axios.post('http://localhost:8000/api/tour/start/', { user_id: 'test_user' })
-      setTourStep(res.data.current_step)
-      setCurrentPage(res.data.current_step.page_name)
-      setTourProgress(0)
-      setChatHistory([])
+      const res = await axios.post('http://localhost:8000/api/tour/start/', { user_id: 'test_user' });
+      if (res.data.tour_started) {
+        setTourStep(res.data.current_step);
+        setCurrentPage(res.data.current_step.page_name);
+        setTourProgress(0);
+        setChatHistory([]);
+      } else {
+        setError(res.data.message || 'Failed to start the tour. Please try again.');
+      }
     } catch (error) {
-      console.error('Error starting tour:', error)
+      console.error('Error starting tour:', error.response?.data || error.message);
+      setError(error.response?.data?.message || 'Failed to start the tour. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   const goToStep = async (stepOrder) => {
     try {
@@ -94,11 +155,17 @@ function App() {
         ])
         setTourStep(null)
         setTourProgress(100)
-      } else {
+      } else if (res.data.current_step) {
         setTourStep(res.data.current_step)
         setCurrentPage(res.data.current_step.page_name)
         setTourProgress(res.data.progress_percentage)
         speak(res.data.current_step.description)
+        
+        // Update chat history with the new step information
+        setChatHistory(prevHistory => [...prevHistory, 
+          { role: 'assistant', content: `Welcome to ${res.data.current_step.page_name}: ${res.data.current_step.title}\n\n${res.data.current_step.description}` }
+        ])
+
         if (res.data.quiz_question) {
           setQuizQuestion(res.data.quiz_question)
           setQuizActive(true)
@@ -106,13 +173,40 @@ function App() {
           setQuizQuestion(null)
           setQuizActive(false)
         }
+      } else {
+        console.error('Invalid response format for next tour step')
+        setError('Failed to fetch the next tour step. Please try again.')
       }
     } catch (error) {
       console.error('Error getting next step:', error.response?.data?.error || error.message)
-      // Optionally, you can set an error state and display it to the user
-      // setError('Failed to fetch the next tour step. Please try again.');
+      setError('Failed to fetch the next tour step. Please try again.')
     }
   }
+
+  const prevTourStep = async () => {
+    try {
+      const res = await axios.post('http://localhost:8000/api/tour/previous/', { user_id: 'test_user' });
+      if (res.data.current_step) {
+        setTourStep(res.data.current_step);
+        setCurrentPage(res.data.current_step.page_name);
+        setTourProgress(res.data.progress_percentage);
+        speak(res.data.current_step.description);
+      } else if (res.data.message === "No previous step") {
+        setError('You are at the beginning of the tour.');
+      } else {
+        console.error('Invalid response format for previous tour step');
+        setError('Failed to fetch the previous tour step. Please try again.');
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.error('Previous step endpoint not found. Ensure it is implemented on the backend.');
+        setError('Previous step functionality is not available.');
+      } else {
+        console.error('Error getting previous step:', error.response?.data?.error || error.message);
+        setError('Failed to fetch the previous tour step. Please try again.');
+      }
+    }
+  };
 
   const handleQuizAnswer = async (answer) => {
     try {
@@ -135,17 +229,16 @@ function App() {
     actions.forEach(action => {
       switch (action.type) {
         case 'navigate':
-          setCurrentPage(action.target)
-          break
+          navigateToPage(action.target);
+          break;
         case 'show_video':
         case 'show_image':
-          setShowMedia(true)
-          setMediaContent(action.content)
-          break
+          setMediaContent(action.content);
+          break;
         default:
-          console.log('Unknown action:', action)
+          console.log('Unknown action:', action);
       }
-    })
+    });
   }
 
   const speak = (text) => {
@@ -162,7 +255,7 @@ function App() {
       if (event.key === 'ArrowRight') {
         nextTourStep()
       } else if (event.key === 'ArrowLeft') {
-        // Implement previous step functionality
+        prevTourStep()
       }
     }
     window.addEventListener('keydown', handleKeyPress)
@@ -171,50 +264,79 @@ function App() {
     }
   }, [])
 
-  return (
-    <div className="App">
-      <header>
-        <h1>Interactive Tour Guide</h1>
-        <p>Current Page: {currentPage}</p>
-        <div className="tour-progress-bar">
-          <div className="progress" style={{width: `${tourProgress}%`}}></div>
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      gsap.from(".chat-message:last-child", {
+        opacity: 0,
+        y: 20,
+        duration: 0.5,
+        ease: "power2.out"
+      });
+    }
+  }, [chatHistory]);
+
+  const renderTourStep = () => {
+    if (!tourStep) return null;
+    const darkTextStyle = { color: '#333333' }; // Dark gray color
+    return (
+      <div className="tour-step">
+        <h2 style={{ ...tourTextStyle, ...darkTextStyle }}>{tourStep.title}</h2>
+        <p style={darkTextStyle}>Current Page: {currentPage}</p>
+        <p style={darkTextStyle}>{tourStep.description}</p>
+        {tourStep.content_type === 'image' && <img src={tourStep.content} alt={tourStep.title} className="tour-image" />}
+        {tourStep.content_type === 'video' && <video src={tourStep.content} controls className="tour-video" />}
+        {tourStep.content_type === 'blog' && <div className="tour-blog-content" style={darkTextStyle}>{tourStep.content}</div>}
+        <div className="tour-navigation">
+          <button className="tour-button" onClick={prevTourStep} disabled={tourProgress === 0}>Previous</button>
+          <button className="tour-button" onClick={nextTourStep} disabled={tourProgress === 100}>Next</button>
         </div>
-      </header>
-      <div className="main-content">
-        <aside className="tour-steps-sidebar">
-          <h3>Tour Steps</h3>
-          <ul>
-            {allTourSteps.map(step => (
-              <li key={step.order} 
-                  className={tourStep && step.order === tourStep.order ? 'active' : ''}
-                  onClick={() => goToStep(step.order)}>
-                {step.title}
-              </li>
-            ))}
-          </ul>
-        </aside>
-        <main>
-          {!tourStep && <button onClick={startTour}>Start Tour</button>}
-          {tourStep && (
-            <div className="tour-step">
-              <h2>{tourStep.title}</h2>
-              <p>{tourStep.description}</p>
-              {tourStep.image && <img src={tourStep.image} alt={tourStep.title} className="tour-image" />}
-              {tourStep.video && (
-                <video src={tourStep.video} controls className="tour-video">
-                  Your browser does not support the video tag.
-                </video>
-              )}
-              <button onClick={nextTourStep}>Next Step</button>
-              <button onClick={() => speak(tourStep.description)} disabled={isSpeaking}>
-                {isSpeaking ? 'Speaking...' : 'Read Aloud'}
-              </button>
-            </div>
-          )}
-          {quizActive && quizQuestion && (
+      </div>
+    );
+  };
+
+  const renderChatHistory = () => {
+    return (
+      <div className="chat-container">
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`chat-message ${message.role}-message`} style={chatStyle}>
+            {message.content}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderProgressBar = () => {
+    return (
+      <div className="progress-bar">
+        <div className="progress-bar-fill" style={{ width: `${tourProgress}%` }}></div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="app-container" style={appStyle}>
+      <h1 style={tourTextStyle}>Interactive Tour Guide</h1>
+      {isLoading ? (
+        <div className="loading-spinner"></div>
+      ) : (
+        <>
+          {renderProgressBar()}
+          {renderTourStep()}
+          {renderChatHistory()}
+          <form onSubmit={handleUserInput}>
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Ask a question..."
+              style={{color: '#000000'}}  // Black text for input
+            />
+            <button type="submit">Send</button>
+          </form>
+          {quizActive && (
             <div className="quiz-container">
-              <h3>Quick Quiz</h3>
-              <p>{quizQuestion.question}</p>
+              <h3 style={tourTextStyle}>{quizQuestion.question}</h3>
               {quizQuestion.options.map((option, index) => (
                 <button key={index} onClick={() => handleQuizAnswer(option)}>
                   {option}
@@ -222,35 +344,9 @@ function App() {
               ))}
             </div>
           )}
-          <div className="chat-area">
-            {chatHistory.map((message, index) => (
-              <div key={index} className={`message ${message.role}`}>
-                <p>{message.content}</p>
-              </div>
-            ))}
-          </div>
-          <form onSubmit={handleUserInput} className="user-input">
-            <input
-              type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask a question or give a command"
-            />
-            <button type="submit">Send</button>
-          </form>
-          {showMedia && (
-            <div className="media-modal">
-              {mediaContent.includes('video') ? (
-                <video src={mediaContent} controls />
-              ) : (
-                <img src={mediaContent} alt="Tour content" />
-              )}
-              <button onClick={() => setShowMedia(false)}>Close</button>
-            </div>
-          )}
-        </main>
-      </div>
-      <TourAnalytics />
+          {error && <div className="error-message" style={{color: '#ff4d4d'}}>{error}</div>}
+        </>
+      )}
     </div>
   )
 }
