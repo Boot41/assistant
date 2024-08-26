@@ -25,21 +25,28 @@ class GPTAssistant:
 
     def get_context(self):
         if self.user_id is None:
-            return {}  # Return empty context if no user_id is provided
-        
-        user_progress = UserProgress.objects.get(user_id=self.user_id)
-        current_step = user_progress.current_step
+            return "You are a tour guide assistant. No specific tour context is available."
+
+        try:
+            user_progress = UserProgress.objects.get(user_id=self.user_id)
+            current_step = user_progress.current_step
+        except UserProgress.DoesNotExist:
+            return "You are a tour guide assistant. No user progress found."
 
         if current_step is None:
-            # If there's no current step, get the first step
-            next_step = TourStep.objects.order_by('order').first()
+            first_step = TourStep.objects.order_by('order').first()
+            if first_step:
+                context = f"You are a tour guide assistant. The tour hasn't started yet. The first step will be '{first_step.title}' on page '{first_step.page_name}'."
+            else:
+                context = "You are a tour guide assistant. No tour steps are available."
         else:
-            next_step = TourStep.objects.filter(order__gt=current_step.order).order_by('order').first()
+            context = f"You are a tour guide assistant. The current tour step is '{current_step.title}' on page '{current_step.page_name}'."
 
-        context = f"You are a tour guide assistant. The current tour step is '{current_step.title}' on page '{current_step.page_name}'. "
+        next_step = TourStep.objects.filter(order__gt=current_step.order).order_by('order').first() if current_step else None
         if next_step:
-            context += f"The next step will be '{next_step.title}' on page '{next_step.page_name}'. "
-        context += "Provide helpful information and guide the user through the tour. You can use 'navigate to [page]', 'show video [id]', or 'show image [id]' commands in your responses."
+            context += f" The next step will be '{next_step.title}' on page '{next_step.page_name}'."
+
+        context += " Provide helpful information and guide the user through the tour. You can use 'navigate to [page]', 'show video [id]', or 'show image [id]' commands in your responses."
         return context
 
     def advance_step(self):
