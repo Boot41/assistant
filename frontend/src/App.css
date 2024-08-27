@@ -279,3 +279,76 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.chat-input-container {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input {
+  flex-grow: 1;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: none;
+  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0; /* Lighter text color */
+  transition: all 0.3s ease;
+}
+
+.chat-input::placeholder {
+  color: #a0a0a0;
+}
+
+.chat-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.chat-submit-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  background-color: #4da6ff;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chat-submit-button:hover {
+  background-color: #3a8ad6;
+}
+
+.chat-submit-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Update existing styles */
+.chat-area {
+  /* ... existing styles ... */
+  color: #e0e0e0; /* Lighter text color for chat messages */
+}
+
+.message {
+  /* ... existing styles ... */
+  color: #e0e0e0; /* Lighter text color for messages */
+}
+
+.message.user {
+  background-color: rgba(77, 166, 255, 0.2); /* Slightly transparent blue for user messages */
+}
+
+.message.assistant {
+  background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent white for assistant messages */
+}

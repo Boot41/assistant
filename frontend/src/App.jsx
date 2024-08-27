@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import './App.css'
 import gsap from 'gsap';
@@ -28,6 +28,7 @@ function App() {
   const [quizQuestion, setQuizQuestion] = useState(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     getTourProgress()
@@ -68,7 +69,10 @@ function App() {
 
   const handleUserInput = async (e) => {
     e.preventDefault();
+    if (!userInput.trim()) return;
+
     try {
+      setIsLoading(true);
       const res = await axios.post('http://localhost:8000/api/tour-guide/', {
         user_id: 'test_user',
         user_input: userInput,
@@ -89,9 +93,15 @@ function App() {
       }
 
       setUserInput('');
+      // Safely focus the input
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     } catch (error) {
       console.error('Error processing interaction:', error);
       setError('Failed to process your input. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -286,12 +296,29 @@ function App() {
         {tourStep.content_type === 'image' && <img src={tourStep.content} alt={tourStep.title} className="tour-image" />}
         {tourStep.content_type === 'video' && <video src={tourStep.content} controls className="tour-video" />}
         {tourStep.content_type === 'blog' && <div className="tour-blog-content" style={darkTextStyle}>{tourStep.content}</div>}
+        {tourStep.content_type === 'interactive' && (
+          <div className="interactive-content">
+            {handleInteractiveContent(tourStep.content)}
+          </div>
+        )}
         <div className="tour-navigation">
           <button className="tour-button" onClick={prevTourStep} disabled={tourProgress === 0}>Previous</button>
           <button className="tour-button" onClick={nextTourStep} disabled={tourProgress === 100}>Next</button>
         </div>
       </div>
     );
+  };
+
+  const handleInteractiveContent = (content) => {
+    switch (content.type) {
+      case '3d_model':
+        // Implement 3D model viewer
+        break;
+      case 'interactive_diagram':
+        // Implement interactive diagram
+        break;
+      // Add more interactive content types as needed
+    }
   };
 
   const renderChatHistory = () => {
@@ -324,16 +351,22 @@ function App() {
           {renderProgressBar()}
           {renderTourStep()}
           {renderChatHistory()}
-          <form onSubmit={handleUserInput}>
-            <input
-              type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask a question..."
-              style={{color: '#000000'}}  // Black text for input
-            />
-            <button type="submit">Send</button>
-          </form>
+          <div className="chat-input-container">
+            <form onSubmit={handleUserInput} className="chat-form">
+              <input
+                ref={inputRef}
+                type="text"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Ask a question or type a command..."
+                className="chat-input"
+                disabled={isLoading}
+              />
+              <button type="submit" className="chat-submit-button" disabled={isLoading}>
+                {isLoading ? 'Sending...' : 'Send'}
+              </button>
+            </form>
+          </div>
           {quizActive && (
             <div className="quiz-container">
               <h3 style={tourTextStyle}>{quizQuestion.question}</h3>
