@@ -2,11 +2,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .models import TourStep, Content, UserProgress, Quiz, UserPoints
+from .models import TourStep, Content, UserProgress, Quiz, UserPoints, UserPreferences, UserHistory
 import json
 from .gpt_assistant import GPTAssistant
 from django.db.models import Avg, F, Count
 import logging
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +32,18 @@ def tour_guide_interaction(request):
     prompt = f"User is on page '{current_page}'. User input: '{user_input}'. Provide a tour guide response."
     response = assistant.generate_response(prompt, 'tour_guide')
 
-    if response and 'choices' in response and len(response['choices']) > 0:
-        assistant_message = response['choices'][0]['message']['content']
-        
-        # Extract any actions from the assistant's response
-        actions = extract_actions(assistant_message)
+    if 'error' in response:
+        return JsonResponse({'error': response['error']}, status=500)
 
-        return JsonResponse({
-            'response': assistant_message,
-            'actions': actions
-        })
-    else:
-        return JsonResponse({'error': 'Failed to generate response'}, status=500)
+    assistant_message = response['response']
+    
+    # Extract any actions from the assistant's response
+    actions = extract_actions(assistant_message)
+
+    return JsonResponse({
+        'response': assistant_message,
+        'actions': actions
+    })
 
 def extract_actions(message):
     actions = []
@@ -380,3 +382,48 @@ def previous_tour_step(request):
             })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["POST"])
+def user_login(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    password = data.get('password')
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return JsonResponse({"message": "Login successful"})
+    else:
+        return JsonResponse({"error": "Invalid credentials"}, status=400)
+
+@require_http_methods(["POST"])
+def user_logout(request):
+    logout(request)
+    return JsonResponse({"message": "Logout successful"})
+
+@require_http_methods(["GET"])
+def get_detailed_analytics(request):
+    try:
+        total_users = User.objects.count()
+        completed_tours = UserProgress.objects.filter(current_step__isnull=True).count()
+        average_progress = UserProgress.objects.exclude(current_step__isnull=True).aggregate(
+            avg_progress=Avg(F('current_step__order') * 100.0 / TourStep.objects.count())
+        )['avg_progress'] or 0
+        
+        step_engagement = TourStep.objects.annotate(
+            view_count=Count('userhistory')
+        ).values('title', 'view_count')
+        
+        content_type_preference = UserPreferences.objects.values('preferred_content_type').annotate(
+            count=Count('preferred_content_type')
+        )
+
+        return JsonResponse({
+            "total_users": total_users,
+            "completed_tours": completed_tours,
+            "average_progress": round(average_progress, 2),
+            "step_engagement": list(step_engagement),
+            "content_type_preference": list(content_type_preference)
+        })
+    except Exception as e:
+        logger.error(f"Error in get_detailed_analytics: {str(e)}", exc_info=True)
+        return JsonResponse({'error': 'An error occurred while fetching analytics'}, status=500)

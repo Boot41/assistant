@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class TourStep(models.Model):
     CONTENT_TYPES = (
@@ -52,3 +53,18 @@ class UserPoints(models.Model):
 
     def __str__(self):
         return f"User {self.user_id} - Points: {self.points}"
+
+class UserPreferences(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    preferred_content_type = models.CharField(max_length=20, choices=[
+        ('video', 'Video'),
+        ('image', 'Image'),
+        ('text', 'Text'),
+        ('interactive', 'Interactive')
+    ])
+    interests = models.JSONField(default=list)
+
+class UserHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    tour_step = models.ForeignKey(TourStep, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
