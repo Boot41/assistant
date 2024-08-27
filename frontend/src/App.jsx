@@ -28,6 +28,8 @@ function App() {
   const [quizQuestion, setQuizQuestion] = useState(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recognition, setRecognition] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -84,6 +86,7 @@ function App() {
         { role: 'assistant', content: res.data.response }
       ]);
       handleActions(res.data.actions);
+      speakResponse(res.data.response);
 
       // Check if the user input contains a navigation request
       const navigationMatch = userInput.match(/navigate to (\w+)/i);
@@ -253,12 +256,93 @@ function App() {
 
   const speak = (text) => {
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      speechSynthesis.speak(utterance)
-      setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
+      speechSynthesis.cancel(); // Clear existing speech
+      const chunks = chunkText(text, 100);
+      chunks.forEach((chunk, index) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.onstart = () => {
+          if (index === 0) setIsSpeaking(true);
+        };
+        utterance.onend = () => {
+          if (index === chunks.length - 1) setIsSpeaking(false);
+        };
+        speechSynthesis.speak(utterance);
+      });
     }
   }
+
+  const chunkText = (text, maxLength) => {
+    const words = text.split(' ');
+    const chunks = [];
+    let currentChunk = '';
+
+    words.forEach(word => {
+      if ((currentChunk + ' ' + word).length <= maxLength) {
+        currentChunk += (currentChunk ? ' ' : '') + word;
+      } else {
+        chunks.push(currentChunk);
+        currentChunk = word;
+      }
+    });
+
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+
+    return chunks;
+  };
+
+  const speakResponse = (response) => {
+    speak(response);
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const startRecording = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const newRecognition = new window.webkitSpeechRecognition();
+      newRecognition.continuous = true;
+      newRecognition.interimResults = true;
+
+      newRecognition.onstart = () => {
+        setIsRecording(true);
+      };
+
+      newRecognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
+        setUserInput(transcript);
+      };
+
+      newRecognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsRecording(false);
+      };
+
+      newRecognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      newRecognition.start();
+      setRecognition(newRecognition);
+    } else {
+      console.error('Speech recognition not supported');
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognition) {
+      recognition.stop();
+      setRecognition(null);
+    }
+  };
 
   useEffect(() => {
     const handleKeyPress = (event) => {
@@ -324,7 +408,7 @@ function App() {
   const renderChatHistory = () => {
     return (
       <div className="chat-container">
-        {chatHistory.map((message, index) => (
+                {chatHistory.map((message, index) => (
           <div key={index} className={`chat-message ${message.role}-message`} style={chatStyle}>
             {message.content}
           </div>
@@ -365,6 +449,9 @@ function App() {
               <button type="submit" className="chat-submit-button" disabled={isLoading}>
                 {isLoading ? 'Sending...' : 'Send'}
               </button>
+              <button type="button" onClick={toggleRecording} className="record-button">
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </button>
             </form>
           </div>
           {quizActive && (
@@ -385,3 +472,5 @@ function App() {
 }
 
 export default App
+
+//added recoring and speech-synthesis 
