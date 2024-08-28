@@ -1,10 +1,16 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 function ChatInterface({ userInput, setUserInput, handleSend, isLoading }) {
-  const { isRecording, toggleRecording } = useSpeechRecognition();
+  const { isRecording, toggleRecording, recordedText } = useSpeechRecognition();
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (recordedText) {
+      setUserInput(recordedText);
+    }
+  }, [recordedText, setUserInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -21,10 +27,10 @@ function ChatInterface({ userInput, setUserInput, handleSend, isLoading }) {
           onChange={(e) => setUserInput(e.target.value)}
           placeholder="Type your message..."
           className="chat-input"
-          disabled={isLoading}
+          disabled={isLoading || isRecording}
         />
         <div className="chat-controls">
-          <button type="submit" className="chat-submit-button" disabled={isLoading}>
+          <button type="submit" className="chat-submit-button" disabled={isLoading || isRecording}>
             {isLoading ? 'Sending...' : 'Send'}
           </button>
           <button type="button" onClick={toggleRecording} className="record-button">
