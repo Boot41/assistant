@@ -17,11 +17,12 @@ urlpatterns = [
     # Navigation related endpoints
     path('navigate/<str:page_name>/', views.navigate_to_page, name='navigate_to_page'),
     # Interaction related endpoints
-    path('tour-guide/', views.tour_guide_interaction, name='tour_guide_interaction'),
     path('gpt-assistant/', views.gpt_assistant_view, name='gpt_assistant'),
     path('tour/analytics/', views.get_tour_analytics, name='get_tour_analytics'),
     path('tour/quiz-answer/', views.handle_quiz_answer, name='handle_quiz_answer'),
     path('user/points/', views.get_user_points, name='get_user_points'),
+    # New chat interaction endpoint
+    path('chat/', views.chat_interaction, name='chat_interaction'),
 ]
 
 if settings.DEBUG:

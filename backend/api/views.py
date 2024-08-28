@@ -14,30 +14,19 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def tour_guide_interaction(request):
+def chat_interaction(request):
     data = json.loads(request.body)
     user_id = data.get('user_id')
     user_input = data.get('user_input')
     current_page = data.get('current_page')
 
-    # Ensure UserProgress exists for this user
-    user_progress, created = UserProgress.objects.get_or_create(user_id=user_id)
-    if created or user_progress.current_step is None:
-        first_step = TourStep.objects.order_by('order').first()
-        if first_step:
-            user_progress.current_step = first_step
-            user_progress.save()
-
     assistant = GPTAssistant(user_id)
-    prompt = f"User is on page '{current_page}'. User input: '{user_input}'. Provide a tour guide response."
-    response = assistant.generate_response(prompt, 'tour_guide')
+    response = assistant.generate_response(user_input, current_page)
 
     if 'error' in response:
         return JsonResponse({'error': response['error']}, status=500)
 
     assistant_message = response['response']
-    
-    # Extract any actions from the assistant's response
     actions = extract_actions(assistant_message)
 
     return JsonResponse({

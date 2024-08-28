@@ -12,47 +12,47 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class GPTAssistant:
-    def __init__(self, user_id=None, model_name='4o-mini'):  # Changed default to '4o-mini'
+    def __init__(self, user_id=None, model_name='4o-mini'):
         self.user_id = user_id
-        self.user_progress = UserProgress.objects.get_or_create(user_id=user_id)[0]
+        self.user_progress = UserProgress.objects.get_or_create(user_id=user_id)[0] if user_id else None
         self.tour_steps = list(TourStep.objects.all().order_by('order'))
         self.ai_model = AIModelFactory.get_model(model_name)
 
-    def generate_response(self, prompt, prompt_type='tour_guide'):
-        try:
-            context = self.get_context()
-            full_prompt = f"""{context}
-            User: {prompt}
-            Assistant:"""
-            response = self.ai_model.generate_response(full_prompt)
-            if response is None:
-                logger.error("AI model returned None response")
-                return {"error": "Failed to generate response"}
-            return {"response": response}
-        except Exception as e:
-            logger.exception(f"Error in generate_response: {str(e)}")
-            return {"error": "An unexpected error occurred"}
+    def generate_response(self, user_input, current_page):
+        context = self.get_context(current_page)
+        full_prompt = f"""{context}
+        Current page: {current_page}
+        User: {user_input}
+        Assistant:"""
+        response = self.ai_model.generate_response(full_prompt)
+        if response is None:
+            logger.error("AI model returned None response")
+            return {"error": "Failed to generate response"}
+        return {"response": response}
 
-    def get_context(self):
-        if self.user_id is None:
-            return self.get_generic_context()
+    def get_context(self, current_page):
+        if self.user_progress and self.user_progress.current_step:
+            return self.get_tour_context(current_page)
+        else:
+            return self.get_chatbot_context(current_page)
 
-        try:
-            user_progress = UserProgress.objects.get(user_id=self.user_id)
-            current_step = user_progress.current_step
-        except UserProgress.DoesNotExist:
-            return self.get_generic_context()
+    def get_tour_context(self, current_page):
+        current_step = self.user_progress.current_step
+        context = f"""You are a tour guide for our company website. The user is currently on the '{current_page}' page.
+        The current tour step is '{current_step.title}'. Here's what they need to know:
 
-        if current_step is None:
-            return self.get_start_tour_context()
+        {current_step.description}
 
-        context = self.get_step_context(current_step)
-        next_step = TourStep.objects.filter(order__gt=current_step.order).order_by('order').first()
-        if next_step:
-            context += self.get_next_step_context(next_step)
+        Key points:
+        {current_step.content}
 
-        context += self.get_general_instructions()
+        Guide the user through this step and be ready to move to the next step when they're ready."""
         return context
+
+    def get_chatbot_context(self, current_page):
+        return f"""You are a helpful chatbot for our company website. The user is currently on the '{current_page}' page.
+        Your role is to assist users with any questions they might have about our company, products, or services.
+        You can suggest relevant pages, videos, or blog posts based on their inquiries."""
 
     def get_generic_context(self):
         return """You are an intelligent and helpful tour guide assistant for our application. Your role is to guide users through the features and functionalities of our platform, answering questions and providing clear, concise explanations. Always maintain a friendly and professional tone."""
