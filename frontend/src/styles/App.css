@@ -1,0 +1,36 @@
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --primary-color: #0048ff;
+  }
+  
+  .dark-mode {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+  }
+  
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+  
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .chat-interface {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 1rem;
+  }
