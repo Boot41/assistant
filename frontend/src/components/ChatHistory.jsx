@@ -1,25 +1,22 @@
-import React, { useEffect, useRef } from 'react';
-import { useChat } from '../context/ChatContext';
-import '../styles/ChatHistory.css';
+import React from 'react';
 
-const ChatHistory = () => {
-  const { chatHistory } = useChat();
-  const chatEndRef = useRef(null);
+function ChatHistory({ chatHistory, isOpen }) {
+  console.log("ChatHistory rendered. isOpen:", isOpen, "chatHistory length:", chatHistory.length);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
+  if (!isOpen) return null;
 
   return (
-    <div className="chat-history">
-      {chatHistory.map((message, index) => (
-        <div key={index} className={`message ${message.role}`}>
-          {message.content}
-        </div>
-      ))}
-      <div ref={chatEndRef} />
+    <div className="chat-history-sidebar p-10">
+      <div className="chat-history-container">
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`chat-message ${message.role}`}>
+            <strong>{message.role === 'user' ? 'You' : 'Assistant'}</strong>
+            <p>{message.content}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
-};
+}
 
 export default ChatHistory;
