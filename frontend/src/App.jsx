@@ -1,22 +1,24 @@
-import { useState, useEffect, useRef } from 'react'
-import axios from 'axios'
-import './App.css'
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import './App.css';
 import gsap from 'gsap';
 import Jarvis from './components/blob';
+import ChatHistory from './components/ChatHistory';
 
 function App() {
-  const [userInput, setUserInput] = useState('')
-  const [chatHistory, setChatHistory] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [recognition, setRecognition] = useState(null)
-  const inputRef = useRef(null)
+  const [userInput, setUserInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState(null);
+  const inputRef = useRef(null);
+  const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
 
   useEffect(() => {
     // Initial greeting from Jarvis
-    setChatHistory([{ role: 'assistant', content: "Hello! I'm Jarvis, your AI assistant. How can I help you today?" }])
-  }, [])
+    setChatHistory([{ role: 'assistant', content: "Hello! I'm Jarvis, your AI assistant. How can I help you today?" }]);
+  }, []);
 
   const handleUserInput = async (e) => {
     e.preventDefault();
@@ -105,6 +107,11 @@ function App() {
     }
   };
 
+  const toggleChatHistory = () => {
+    console.log("Toggling chat history. Current state:", isChatHistoryOpen);
+    setIsChatHistoryOpen(!isChatHistoryOpen);
+  };
+
   return (
     <div className="app-container">
       <div className="content-wrapper">
@@ -112,13 +119,7 @@ function App() {
           <Jarvis isSpeaking={isSpeaking} />
         </div>
         
-        <div className="chat-history-container">
-          {chatHistory.map((message, index) => (
-            <div key={index} className={`chat-message ${message.role}`}>
-              {message.content}
-            </div>
-          ))}
-        </div>
+        <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} />
       </div>
       
       <div className="input-container">
@@ -142,6 +143,12 @@ function App() {
           </div>
         </form>
       </div>
+      <button 
+        className="chat-history-toggle" 
+        onClick={toggleChatHistory}
+      >
+        {isChatHistoryOpen ? 'Close History' : 'Chat History'}
+      </button>
     </div>
   )
 }
