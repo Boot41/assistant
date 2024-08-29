@@ -23,6 +23,8 @@ urlpatterns = [
     path('user/points/', views.get_user_points, name='get_user_points'),
     # New chat interaction endpoint
     path('chat/', views.chat_interaction, name='chat_interaction'),
+    # New tour steps endpoint
+    path('tour-steps/', views.get_tour_steps, name='get_tour_steps'),
 ]
 
 if settings.DEBUG:

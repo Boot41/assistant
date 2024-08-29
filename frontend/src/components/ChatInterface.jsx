@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useChat } from '../hooks/useChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
@@ -52,5 +53,14 @@ function ChatInterface(props) {
     </div>
   );
 }
+
+ChatInterface.propTypes = {
+  userInput: PropTypes.string.isRequired,
+  setUserInput: PropTypes.func.isRequired,
+  handleSend: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool.isRequired,
+  isRecording: PropTypes.bool.isRequired,
+  setIsRecording: PropTypes.func.isRequired,
+};
 
 export default ChatInterface;

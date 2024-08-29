@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 from dotenv import load_dotenv
-from .models import TourStep, UserProgress, Quiz
+from .models import TourStep, UserProfile
 from .ai_models import AIModelFactory
 
 load_dotenv()
@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 class GPTAssistant:
     def __init__(self, user_id=None, model_name='4o-mini'):
         self.user_id = user_id
-        self.user_progress = UserProgress.objects.get_or_create(user_id=user_id)[0] if user_id else None
-        self.tour_steps = list(TourStep.objects.all().order_by('order'))
+        self.user_profile = UserProfile.objects.get(user_id=user_id) if user_id else None
+        self.company = self.user_profile.company if self.user_profile else None
+        self.tour_steps = list(TourStep.objects.filter(company=self.company).order_by('order'))
         self.ai_model = AIModelFactory.get_model(model_name)
 
     def generate_response(self, user_input, current_page):
@@ -31,13 +32,15 @@ class GPTAssistant:
         return {"response": response}
 
     def get_context(self, current_page):
-        if self.user_progress and self.user_progress.current_step:
-            return self.get_tour_context(current_page)
+        context = self.get_company_context()
+        if self.user_profile and self.user_profile.current_tour_step:
+            context += self.get_tour_context(current_page)
         else:
-            return self.get_chatbot_context(current_page)
+            context += self.get_chatbot_context(current_page)
+        return context
 
     def get_tour_context(self, current_page):
-        current_step = self.user_progress.current_step
+        current_step = self.user_profile.current_tour_step
         context = f"""You are a tour guide for our company website. The user is currently on the '{current_page}' page.
         The current tour step is '{current_step.title}'. Here's what they need to know:
 
@@ -74,7 +77,7 @@ Key points to remember:
 2. This step is designed to help you understand {step.title.lower()}.
 3. Take your time to explore this section and ask any questions you may have.
 
-"""
+ """
 
     def get_next_step_context(self, next_step):
         return f"""Once you're comfortable with the current step, we'll move on to '{next_step.title}' on the {next_step.page_name} page. This will cover {next_step.description.split('.')[0].lower()}."""

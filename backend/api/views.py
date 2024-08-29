@@ -2,13 +2,15 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .models import TourStep, Content, UserProgress, Quiz, UserPoints, UserPreferences, UserHistory
+from .models import TourStep, Content, UserProfile, UserHistory, Company, CompanyInfo
 import json
 from .gpt_assistant import GPTAssistant
 from django.db.models import Avg, F, Count
 import logging
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,15 @@ def chat_interaction(request):
 
     assistant_message = response['response']
     actions = extract_actions(assistant_message)
+
+    # Update user history
+    if user_id:
+        user_profile = UserProfile.objects.get(user_id=user_id)
+        UserHistory.objects.create(
+            user=user_profile.user,
+            company=user_profile.company,
+            tour_step=user_profile.current_tour_step
+        )
 
     return JsonResponse({
         'response': assistant_message,
@@ -53,37 +64,41 @@ def extract_actions(message):
 def get_tour_progress(request):
     user_id = request.GET.get('user_id')
     try:
-        total_steps = TourStep.objects.count()
+        user_profile = UserProfile.objects.get(user_id=user_id)
+        company = user_profile.company
+        total_steps = TourStep.objects.filter(company=company).count()
+        
         if total_steps == 0:
             return JsonResponse({
-                "error": "No tour steps available",
+                "error": "No tour steps available for this company",
                 "total_steps": 0,
                 "message": "Please add tour steps to the database."
             }, status=404)
 
-        user_progress, created = UserProgress.objects.get_or_create(user_id=user_id)
-        if created or user_progress.current_step is None:
-            first_step = TourStep.objects.order_by('order').first()
+        if not user_profile.current_tour_step:
+            first_step = TourStep.objects.filter(company=company).order_by('order').first()
             if first_step:
-                user_progress.current_step = first_step
-                user_progress.save()
+                user_profile.current_tour_step = first_step
+                user_profile.save()
             else:
                 return JsonResponse({"error": "No tour steps available", "total_steps": 0}, status=404)
         
-        current_step_number = TourStep.objects.filter(order__lte=user_progress.current_step.order).count()
+        current_step_number = TourStep.objects.filter(company=company, order__lte=user_profile.current_tour_step.order).count()
         
         return JsonResponse({
             "current_step": {
-                "title": user_progress.current_step.title,
-                "description": user_progress.current_step.description,
-                "page_name": user_progress.current_step.page_name,
-                "section_id": user_progress.current_step.section_id,
-                "content_type": user_progress.current_step.content_type,
-                "content": user_progress.current_step.content
+                "title": user_profile.current_tour_step.title,
+                "description": user_profile.current_tour_step.description,
+                "page_name": user_profile.current_tour_step.page_name,
+                "section_id": user_profile.current_tour_step.section_id,
+                "content_type": user_profile.current_tour_step.content_type,
+                "content": user_profile.current_tour_step.content
             },
             "total_steps": total_steps,
             "progress_percentage": (current_step_number / total_steps) * 100 if total_steps > 0 else 0
         })
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"error": "User profile not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
@@ -132,7 +147,7 @@ def navigate_to_page(request):
     user_id = data.get('user_id')
     page_name = data.get('page_name')
     
-    user_progress = UserProgress.objects.get(user_id=user_id)
+    user_progress = UserProfile.objects.get(user_id=user_id)
     next_step = TourStep.objects.filter(page_name__iexact=page_name).order_by('order').first()
     
     total_steps = TourStep.objects.count()
@@ -180,7 +195,7 @@ def start_tour(request):
         }, status=400)
 
     first_step = TourStep.objects.order_by('order').first()
-    user_progress, created = UserProgress.objects.get_or_create(
+    user_progress, created = UserProfile.objects.get_or_create(
         user_id=user_id,
         defaults={'current_step': first_step}
     )
@@ -212,7 +227,7 @@ def next_tour_step(request):
         user_id = data.get('user_id')
         logger.info(f"Fetching next tour step for user: {user_id}")
         
-        user_progress, created = UserProgress.objects.get_or_create(user_id=user_id)
+        user_progress, created = UserProfile.objects.get_or_create(user_id=user_id)
         
         if created or not user_progress.current_step:
             next_step = TourStep.objects.order_by('order').first()
@@ -252,9 +267,9 @@ def next_tour_step(request):
 @require_http_methods(["GET"])
 def get_tour_analytics(request):
     try:
-        total_users = UserProgress.objects.count()
-        completed_tours = UserProgress.objects.filter(current_step__isnull=True).count()
-        average_progress = UserProgress.objects.exclude(current_step__isnull=True).aggregate(
+        total_users = UserProfile.objects.count()
+        completed_tours = UserProfile.objects.filter(current_step__isnull=True).count()
+        average_progress = UserProfile.objects.exclude(current_step__isnull=True).aggregate(
             avg_progress=Avg(F('current_step__order') * 100.0 / TourStep.objects.count())
         )['avg_progress'] or 0
 
@@ -286,7 +301,7 @@ def go_to_step(request):
     data = json.loads(request.body)
     user_id = data.get('user_id')
     step_order = data.get('step_order')
-    user_progress = UserProgress.objects.get(user_id=user_id)
+    user_progress = UserProfile.objects.get(user_id=user_id)
     step = TourStep.objects.get(order=step_order)
     user_progress.current_step = step
     user_progress.save()
@@ -315,7 +330,7 @@ def handle_quiz_answer(request):
     quiz = Quiz.objects.get(id=question_id)
     is_correct = answer == quiz.correct_answer
     
-    user_points, _ = UserPoints.objects.get_or_create(user_id=user_id)
+    user_points, _ = UserProfile.objects.get_or_create(user_id=user_id)
     if is_correct:
         user_points.points += 10
         user_points.save()
@@ -329,7 +344,7 @@ def handle_quiz_answer(request):
 @require_http_methods(["GET"])
 def get_user_points(request):
     user_id = request.GET.get('user_id')
-    user_points, _ = UserPoints.objects.get_or_create(user_id=user_id)
+    user_points, _ = UserProfile.objects.get_or_create(user_id=user_id)
     return JsonResponse({"points": user_points.points})
 
 @require_http_methods(["POST"])
@@ -339,7 +354,7 @@ def previous_tour_step(request):
         data = json.loads(request.body)
         user_id = data.get('user_id')
         
-        user_progress = UserProgress.objects.get(user_id=user_id)
+        user_progress = UserProfile.objects.get(user_id=user_id)
         
         previous_step = TourStep.objects.filter(order__lt=user_progress.current_step.order).order_by('-order').first()
         
@@ -393,8 +408,8 @@ def user_logout(request):
 def get_detailed_analytics(request):
     try:
         total_users = User.objects.count()
-        completed_tours = UserProgress.objects.filter(current_step__isnull=True).count()
-        average_progress = UserProgress.objects.exclude(current_step__isnull=True).aggregate(
+        completed_tours = UserProfile.objects.filter(current_step__isnull=True).count()
+        average_progress = UserProfile.objects.exclude(current_step__isnull=True).aggregate(
             avg_progress=Avg(F('current_step__order') * 100.0 / TourStep.objects.count())
         )['avg_progress'] or 0
         
@@ -402,7 +417,7 @@ def get_detailed_analytics(request):
             view_count=Count('userhistory')
         ).values('title', 'view_count')
         
-        content_type_preference = UserPreferences.objects.values('preferred_content_type').annotate(
+        content_type_preference = UserProfile.objects.values('preferred_content_type').annotate(
             count=Count('preferred_content_type')
         )
 
@@ -416,3 +431,9 @@ def get_detailed_analytics(request):
     except Exception as e:
         logger.error(f"Error in get_detailed_analytics: {str(e)}", exc_info=True)
         return JsonResponse({'error': 'An error occurred while fetching analytics'}, status=500)
+
+@api_view(['GET'])
+def get_tour_steps(request):
+    steps = TourStep.objects.all().order_by('order')
+    data = [{'title': step.title, 'description': step.description, 'content': step.content} for step in steps]
+    return Response(data)

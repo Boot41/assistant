@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './App.css';
 import JarvisContainer from './components/JarvisContainer';
 import ChatInterface from './components/ChatInterface';
 import ChatHistory from './components/ChatHistory';
 import ChatHistoryToggle from './components/ChatHistoryToggle';
 import { useChat } from './hooks/useChat';
+import TourGuide from './components/TourGuide';
 
 function App() {
   const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading } = useChat();
@@ -20,6 +21,7 @@ function App() {
       <div className="content-wrapper">
         <JarvisContainer isSpeaking={isSpeaking} isRecording={isRecording} />
         <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} />
+        <TourGuide />
       </div>
       <ChatInterface 
         userInput={userInput}
@@ -27,7 +29,7 @@ function App() {
         handleSend={handleSend}
         isLoading={isLoading}
         isRecording={isRecording}
-        setIsRecording={setIsRecording}  // Make sure this line is present
+        setIsRecording={setIsRecording}
       />
       <ChatHistoryToggle 
         isOpen={isChatHistoryOpen} 

@@ -144,3 +144,6 @@ CORS_ALLOW_ALL_ORIGINS = True  # For development only. Be more specific in produ
 # GPT-4 mini settings
 GPT_API_KEY = os.getenv('GPT_API_KEY')
 GPT_MODEL_URL = os.getenv('GPT_MODEL_URL')
+
+# Add this line somewhere in your settings.py file
+DEFAULT_COMPANY_NAME = "Think41"

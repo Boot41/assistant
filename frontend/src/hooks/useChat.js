@@ -41,5 +41,5 @@ export const useChat = () => {
     }
   };
 
-  return { userInput, setUserInput, chatHistory, isLoading, isSpeaking, handleSend };
+  return { userInput, setUserInput, chatHistory, isLoading, isSpeaking, handleSend, speakResponse };
 };

@@ -184,3 +184,25 @@
     max-width: none;
   }
 }
+
+.tour-step {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 300px;
+  z-index: 1000;
+}
+
+.tour-step button {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
