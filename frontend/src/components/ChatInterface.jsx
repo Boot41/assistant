@@ -3,9 +3,7 @@ import PropTypes from 'prop-types';
 import { useChat } from '../hooks/useChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
-function ChatInterface(props) {
-  console.log('ChatInterface props:', props);
-  const { userInput, setUserInput, handleSend, isLoading, isRecording, setIsRecording } = props;
+function ChatInterface({ userInput, setUserInput, handleSend, isLoading, isRecording, setIsRecording, currentPage }) {
   const { toggleRecording, recordedText } = useSpeechRecognition();
   const inputRef = useRef(null);
 

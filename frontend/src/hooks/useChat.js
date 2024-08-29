@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-export const useChat = () => {
+export function useChat() {
+  const [currentPage, setCurrentPage] = useState('Exploring our services');
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -12,21 +13,24 @@ export const useChat = () => {
   }, []);
 
   const handleSend = async () => {
-    if (!userInput.trim()) return;
+    if (userInput.trim() === '') return;
+
+    setIsLoading(true);
+    const newMessage = { role: 'user', content: userInput };
+    setChatHistory(prevHistory => [...prevHistory, newMessage]);
 
     try {
-      setIsLoading(true);
-      setChatHistory(prevHistory => [...prevHistory, { role: 'user', content: userInput }]);
-      
-      const response = await axios.post('http://localhost:8000/api/chat/', { user_input: userInput });
-      
+      const response = await axios.post('http://localhost:8000/api/chat/', {
+        user_input: userInput,
+        current_page: currentPage
+      });
+
       setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: response.data.response }]);
       speakResponse(response.data.response);
 
       setUserInput('');
     } catch (error) {
-      console.error('Error processing interaction:', error);
-      setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: "I'm sorry, I encountered an error. Could you please try again?" }]);
+      console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
     }
@@ -41,5 +45,14 @@ export const useChat = () => {
     }
   };
 
-  return { userInput, setUserInput, chatHistory, isLoading, isSpeaking, handleSend, speakResponse };
-};
+  return {
+    chatHistory,
+    isSpeaking,
+    userInput,
+    setUserInput,
+    handleSend,
+    isLoading,
+    currentPage,
+    setCurrentPage
+  };
+}

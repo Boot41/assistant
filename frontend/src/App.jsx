@@ -8,7 +8,7 @@ import { useChat } from './hooks/useChat';
 import TourGuide from './components/TourGuide';
 
 function App() {
-  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading } = useChat();
+  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
@@ -30,6 +30,7 @@ function App() {
         isLoading={isLoading}
         isRecording={isRecording}
         setIsRecording={setIsRecording}
+        currentPage={currentPage}
       />
       <ChatHistoryToggle 
         isOpen={isChatHistoryOpen} 

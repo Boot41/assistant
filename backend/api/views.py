@@ -20,10 +20,10 @@ def chat_interaction(request):
     data = json.loads(request.body)
     user_id = data.get('user_id')
     user_input = data.get('user_input')
-    current_page = data.get('current_page')
+    current_page = data.get('current_page', 'Unknown')  # Provide a default value
 
-    assistant = GPTAssistant(user_id)
-    response = assistant.generate_response(user_input, current_page)
+    assistant = GPTAssistant(user_id=user_id, current_page=current_page)
+    response = assistant.generate_response(user_input)
 
     if 'error' in response:
         return JsonResponse({'error': response['error']}, status=500)
@@ -37,12 +37,21 @@ def chat_interaction(request):
         UserHistory.objects.create(
             user=user_profile.user,
             company=user_profile.company,
-            tour_step=user_profile.current_tour_step
+            tour_step=user_profile.current_tour_step,
+            current_page=current_page  # Add this line to store the current page
         )
+
+    # Handle specific actions like starting a tour or navigating pages
+    if 'start_tour' in actions:
+        start_tour(request)
+    elif 'navigate' in actions:
+        navigate_to_page(request, page_name=actions['navigate'])
+        assistant.update_current_page(actions['navigate'])
 
     return JsonResponse({
         'response': assistant_message,
-        'actions': actions
+        'actions': actions,
+        'current_page': assistant.current_page  # Add this line to return the current page
     })
 
 def extract_actions(message):

@@ -6,6 +6,7 @@ const TourGuide = () => {
   const [tourSteps, setTourSteps] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  const [currentPage, setCurrentPage] = useState('Exploring our services');
 
   useEffect(() => {
     fetchTourSteps();
@@ -25,6 +26,7 @@ const TourGuide = () => {
       setIsVisible(false);
       setTimeout(() => {
         setCurrentStep(prev => prev + 1);
+        setCurrentPage(tourSteps[currentStep + 1].page_name);
         setIsVisible(true);
       }, 300);
     }
@@ -35,6 +37,7 @@ const TourGuide = () => {
       setIsVisible(false);
       setTimeout(() => {
         setCurrentStep(prev => prev - 1);
+        setCurrentPage(tourSteps[currentStep - 1].page_name);
         setIsVisible(true);
       }, 300);
     }
