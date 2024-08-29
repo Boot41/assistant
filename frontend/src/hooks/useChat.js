@@ -38,10 +38,37 @@ export function useChat() {
 
   const speakResponse = (text) => {
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      speechSynthesis.speak(utterance);
+      // Clear any existing speech synthesis
+      speechSynthesis.cancel();
+
+      // Split text into chunks of around 200 characters, preserving whole words
+      const chunks = text.match(/\S.{1,199}(?!\S)/g) || [];
+
+      let currentChunk = 0;
+
+      const speakNextChunk = () => {
+        if (currentChunk < chunks.length) {
+          const utterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
+          utterance.rate = 1.2; // Increase speed (1.0 is normal speed)
+          
+          if (currentChunk === 0) {
+            utterance.onstart = () => setIsSpeaking(true);
+          }
+
+          utterance.onend = () => {
+            currentChunk++;
+            if (currentChunk < chunks.length) {
+              speakNextChunk();
+            } else {
+              setIsSpeaking(false);
+            }
+          };
+
+          speechSynthesis.speak(utterance);
+        }
+      };
+
+      speakNextChunk();
     }
   };
 
