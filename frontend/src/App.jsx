@@ -9,6 +9,7 @@ import { useChat } from './hooks/useChat';
 function App() {
   const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const toggleChatHistory = () => {
     setIsChatHistoryOpen(!isChatHistoryOpen);
@@ -17,7 +18,7 @@ function App() {
   return (
     <div className="app-container">
       <div className="content-wrapper">
-        <JarvisContainer isSpeaking={isSpeaking} />
+        <JarvisContainer isSpeaking={isSpeaking} isRecording={isRecording} />
         <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} />
       </div>
       <ChatInterface 
@@ -25,6 +26,8 @@ function App() {
         setUserInput={setUserInput}
         handleSend={handleSend}
         isLoading={isLoading}
+        isRecording={isRecording}
+        setIsRecording={setIsRecording}  // Make sure this line is present
       />
       <ChatHistoryToggle 
         isOpen={isChatHistoryOpen} 
