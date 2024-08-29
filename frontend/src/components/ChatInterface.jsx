@@ -2,8 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
-function ChatInterface({ userInput, setUserInput, handleSend, isLoading }) {
-  const { isRecording, toggleRecording, recordedText } = useSpeechRecognition();
+function ChatInterface(props) {
+  console.log('ChatInterface props:', props);
+  const { userInput, setUserInput, handleSend, isLoading, isRecording, setIsRecording } = props;
+  const { toggleRecording, recordedText } = useSpeechRecognition();
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -15,6 +17,15 @@ function ChatInterface({ userInput, setUserInput, handleSend, isLoading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     handleSend();
+  };
+
+  const handleToggleRecording = () => {
+    toggleRecording();
+    if (typeof setIsRecording === 'function') {
+      setIsRecording(prev => !prev);
+    } else {
+      console.error('setIsRecording is not a function');
+    }
   };
 
   return (
@@ -33,7 +44,7 @@ function ChatInterface({ userInput, setUserInput, handleSend, isLoading }) {
           <button type="submit" className="chat-submit-button" disabled={isLoading || isRecording}>
             {isLoading ? 'Sending...' : 'Send'}
           </button>
-          <button type="button" onClick={toggleRecording} className="record-button">
+          <button type="button" onClick={handleToggleRecording} className="record-button">
             {isRecording ? 'Stop Recording' : 'Start Recording'}
           </button>
         </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import './Jarvis.css';
 
-const Jarvis = () => {
+const Jarvis = ({isRecording}) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -40,9 +40,15 @@ const Jarvis = () => {
       count = wait - 1;
       numToAddEachFrame = 8;
 
-      r = 0;
-      g = 72;
-      b = 255;
+      if(isRecording){
+        r = 235;
+        g = 94;
+        b = 52;
+      } else {
+        r = 0;
+        g = 72;
+        b = 255;
+      }   
 
       rgbString = "rgba(" + r + "," + g + "," + b + ",";
       particleAlpha = 1;
@@ -235,7 +241,7 @@ const Jarvis = () => {
     return () => {
       clearInterval(timer);
     };
-  }, []);
+  }, [isRecording]);
 
   return (
     <div id="JarvisHood" style={{width: '100%', height: '100%', position: 'relative'}}>
@@ -247,10 +253,10 @@ const Jarvis = () => {
         width: '100%',
         height: '100%'
       }}></canvas>
-      <div className="square">
-        <span className="circle"></span>
-        <span className="circle"></span>
-        <span className="circle"></span>
+      <div className={`square ${isRecording ? 'recording' : ''}`}>
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
     </div>
   );

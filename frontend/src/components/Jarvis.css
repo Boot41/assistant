@@ -27,10 +27,17 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(#6b72ff00 50%,#000dff3b 40%);
-    box-shadow: 0 0 50px rgb(25,0,255) , inset 0 0 50px rgb(25,0,255);
+    background-image: radial-gradient(#6b72ff00 50%, #000dff3b 40%);
+    box-shadow: 0 0 50px rgb(25,0,255), inset 0 0 50px rgb(25,0,255);
     border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
     transition: 0.5s;
+}
+
+.square.recording span:nth-child(1),
+.square.recording span:nth-child(2),
+.square.recording span:nth-child(3) {
+    background-image: radial-gradient(#6b72ff00 50%, #eb5e343b 40%);
+    box-shadow: 0 0 50px rgb(235, 94, 52), inset 0 0 50px rgb(235, 94, 52);
 }
 
 .square span:nth-child(1) {
