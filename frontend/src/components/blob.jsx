@@ -1,9 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import './Jarvis.css';
 
 const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef }) => {
   const canvasRef = useRef(null);
   const [position, setPosition] = useState({ top: '50%', left: '50%' });
+
+  const particleConfig = useMemo(() => ({
+    count: 1000,
+    size: 2,
+    maxSpeed: 0.1,
+    minSpeed: 0.02,
+    color: isRecording ? [235, 94, 52] : [0, 72, 255],
+    blurFactor: 0.5,
+  }), [isRecording]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

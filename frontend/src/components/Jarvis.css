@@ -10,6 +10,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  animation: pulse 4s ease-in-out infinite;
 }
 
 .square {
@@ -24,6 +25,9 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.8;
+  mix-blend-mode: screen;
+  transition: background-image 0.5s ease, box-shadow 0.5s ease;
 }
 
 .square span:nth-child(1),
@@ -74,10 +78,48 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
 #JarvisHood {
   transition: all 0.5s ease-in-out;
 }
 
 #JarvisHood.minimized {
-  /* No additional styles needed here, everything is handled inline */
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+#JarvisHood.minimized:hover {
+  transform: scale(1.1);
+}
+
+#JarvisHood:hover .square span {
+  filter: brightness(1.2);
+  transition: filter 0.3s ease;
+}
+
+#JarvisHood:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 5px;
+}
+
+.square span {
+  will-change: transform;
+}
+
+#JarvisHood::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: inherit;
+  filter: blur(20px);
+  opacity: 0.7;
+  z-index: -1;
+  border-radius: inherit;
 }
