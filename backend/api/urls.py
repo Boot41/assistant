@@ -25,6 +25,8 @@ urlpatterns = [
     path('chat/', views.chat_interaction, name='chat_interaction'),
     # New tour steps endpoint
     path('tour-steps/', views.get_tour_steps, name='get_tour_steps'),
+    # Initial page endpoint
+    path('initial-page/', views.get_initial_page, name='get_initial_page'),
 ]
 
 if settings.DEBUG:

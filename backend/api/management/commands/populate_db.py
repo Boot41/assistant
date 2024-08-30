@@ -1,76 +1,94 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
-from api.models import Company, CompanyInfo, TourStep, Content, UserProfile
-from django.conf import settings
+from api.models import Company, CompanyInfo, Content
 
 class Command(BaseCommand):
-    help = 'Populate the database with company information'
+    help = 'Populate the database with Think41 information'
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write('Populating database with company information...')
+    def handle(self, *args, **options):
+        self.stdout.write('Populating database with Think41 information...')
 
-        # Company details
-        name = input("Enter company name: ")
-        description = input("Enter company description: ")
-        industry = input("Enter company industry: ")
-        founded_year = int(input("Enter founding year: "))
-        website = input("Enter company website: ")
-
-        company, created = Company.objects.get_or_create(
-            name=name,
+        # Create Think41 company
+        think41, created = Company.objects.update_or_create(
+            name="Think41",
             defaults={
-                'description': description,
-                'industry': industry,
-                'founded_year': founded_year,
-                'website': website,
+                'description': "Think41 is a technology consulting company providing Custom Software as a Service (CSaaS).",
+                'industry': "Technology Consulting",
+                'founded_year': 2024,
+                'website': "https://think41.com",
             }
         )
-        self.stdout.write(f'{"Created" if created else "Updated"} company: {company.name}')
+        self.stdout.write(f'{"Created" if created else "Updated"} company: {think41.name}')
 
-        # Company info
-        while True:
-            key = input("Enter company info key (or press enter to finish): ")
-            if not key:
-                break
-            value = input(f"Enter value for {key}: ")
-            is_public = input(f"Is {key} public? (y/n): ").lower() == 'y'
-            CompanyInfo.objects.update_or_create(
-                company=company, key=key,
-                defaults={'value': value, 'is_public': is_public}
+        # Add company info
+        company_info_data = [
+            {'key': 'Career Email', 'value': 'career@think41.com', 'is_public': True},
+            {'key': 'Funding', 'value': 'Self-funded with $2 million investment', 'is_public': True},
+            {'key': 'Previous Company', 'value': 'HashedIn (acquired by Deloitte US in 2021)', 'is_public': True},
+            {'key': 'Location', 'value': 'Bangalore, India', 'is_public': True},
+            {'key': 'Service', 'value': 'Cloud-native app development', 'is_public': True},
+            {'key': 'Service', 'value': 'Gen AI agent development', 'is_public': True},
+            {'key': 'Service', 'value': 'LLM maintenance and operations', 'is_public': True},
+            {'key': 'Technology', 'value': 'GenAI tools and frameworks', 'is_public': True},
+            {'key': 'Technology', 'value': 'Cloud-native technologies', 'is_public': True},
+            {'key': 'Client', 'value': 'Series B funded startups', 'is_public': True},
+            {'key': 'Client', 'value': 'Mid-sized listed enterprises', 'is_public': True},
+            {'key': 'Client', 'value': 'Deloitte', 'is_public': True},
+            {'key': 'Founder', 'value': 'Anshuman Singh', 'is_public': True},
+            {'key': 'Founder', 'value': 'Harshit Singhal', 'is_public': True},
+            {'key': 'Founder', 'value': 'Himanshu Varshney', 'is_public': True},
+            {'key': 'Founder', 'value': 'Sripathi Krishnan', 'is_public': True},
+            {'key': 'Founder LinkedIn', 'value': 'https://www.linkedin.com/in/anshum4n/', 'is_public': True},
+            {'key': 'Founder LinkedIn', 'value': 'https://www.linkedin.com/in/harshitsinghal01/', 'is_public': True},
+            {'key': 'Founder LinkedIn', 'value': 'https://www.linkedin.com/in/himanshuhv/', 'is_public': True},
+            {'key': 'Founder LinkedIn', 'value': 'https://www.linkedin.com/in/sripathikrishnan/', 'is_public': True},
+        ]
+
+        for info in company_info_data:
+            obj, created = CompanyInfo.objects.update_or_create(
+                company=think41,
+                key=info['key'],
+                defaults={'value': info['value'], 'is_public': info['is_public']}
             )
+            self.stdout.write(f'{"Added" if created else "Updated"} company info: {info["key"]}')
 
-        # Tour steps
-        step_order = 1
-        while True:
-            title = input(f"Enter title for tour step {step_order} (or press enter to finish): ")
-            if not title:
-                break
-            description = input("Enter step description: ")
-            page_name = input("Enter page name for this step: ")
-            content = input("Enter step content: ")
-            TourStep.objects.update_or_create(
-                company=company, order=step_order,
+        # Add content
+        content_data = [
+            {
+                'content_type': 'text',
+                'title': 'About Think41',
+                'content': 'Think41 is a technology consulting company founded in 2024, providing Custom Software as a Service (CSaaS). We address the evolving needs of the software engineering industry, particularly with the advent of GenAI.'
+            },
+            {
+                'content_type': 'text',
+                'title': 'Our Approach',
+                'content': 'We utilize GenAI tools and frameworks to deliver efficient and innovative software solutions. Our Autopod-based pricing model ensures transparency and flexibility for clients.'
+            },
+            {
+                'content_type': 'text',
+                'title': 'Our Founders',
+                'content': 'Our founders have a strong background in cloud services and previously built HashedIn, acquired by Deloitte US in 2021. They bring expertise in technology, scalability, and management consulting.'
+            },
+            {
+                'content_type': 'text',
+                'title': 'Services',
+                'content': 'We offer cloud-native app development, Gen AI agent development, and LLM maintenance and operations. All services are delivered through Autonomous Pods, cross-functional teams using Gen AI tools to enhance the software development lifecycle.'
+            },
+            {
+                'content_type': 'text',
+                'title': 'Technology Stack',
+                'content': 'We employ various GenAI-focused technology tools and frameworks, including Agent Frameworks, customized chat interfaces, autonomous agents, vector stores, and embedding solutions.'
+            }
+        ]
+
+        for content_item in content_data:
+            obj, created = Content.objects.update_or_create(
+                company=think41,
+                title=content_item['title'],
                 defaults={
-                    'title': title,
-                    'description': description,
-                    'page_name': page_name,
-                    'content': content,
+                    'content_type': content_item['content_type'],
+                    'content': content_item['content']
                 }
             )
-            step_order += 1
+            self.stdout.write(f'{"Added" if created else "Updated"} content: {content_item["title"]}')
 
-        # Content
-        while True:
-            content_type = input("Enter content type (video/image/text/interactive) or press enter to finish: ")
-            if not content_type:
-                break
-            title = input("Enter content title: ")
-            content = input("Enter content (URL for video/image, text for others): ")
-            Content.objects.create(
-                company=company,
-                content_type=content_type,
-                title=title,
-                content=content
-            )
-
-        self.stdout.write(self.style.SUCCESS('Company information added successfully'))
+        self.stdout.write(self.style.SUCCESS('Think41 information added successfully'))

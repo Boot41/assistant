@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useChat } from '../hooks/useChat';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 function ChatInterface({ userInput, setUserInput, handleSend, isLoading, isRecording, setIsRecording, currentPage }) {
@@ -15,16 +14,14 @@ function ChatInterface({ userInput, setUserInput, handleSend, isLoading, isRecor
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    handleSend();
+    if (userInput.trim() !== '') {
+      handleSend();
+    }
   };
 
   const handleToggleRecording = () => {
     toggleRecording();
-    if (typeof setIsRecording === 'function') {
-      setIsRecording(prev => !prev);
-    } else {
-      console.error('setIsRecording is not a function');
-    }
+    setIsRecording(prev => !prev);
   };
 
   return (
@@ -40,7 +37,7 @@ function ChatInterface({ userInput, setUserInput, handleSend, isLoading, isRecor
           disabled={isLoading || isRecording}
         />
         <div className="chat-controls">
-          <button type="submit" className="chat-submit-button" disabled={isLoading || isRecording}>
+          <button type="submit" className="chat-submit-button" disabled={isLoading || isRecording || userInput.trim() === ''}>
             {isLoading ? 'Sending...' : 'Send'}
           </button>
           <button type="button" onClick={handleToggleRecording} className="record-button">
@@ -59,6 +56,7 @@ ChatInterface.propTypes = {
   isLoading: PropTypes.bool.isRequired,
   isRecording: PropTypes.bool.isRequired,
   setIsRecording: PropTypes.func.isRequired,
+  currentPage: PropTypes.string,
 };
 
 export default ChatInterface;

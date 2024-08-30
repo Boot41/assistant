@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import JarvisContainer from './components/JarvisContainer';
 import ChatInterface from './components/ChatInterface';
@@ -8,20 +8,32 @@ import { useChat } from './hooks/useChat';
 import TourGuide from './components/TourGuide';
 
 function App() {
-  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage } = useChat();
+  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage, isTourStarted, setIsTourStarted, tourSteps } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
-  const toggleChatHistory = () => {
-    setIsChatHistoryOpen(!isChatHistoryOpen);
-  };
+  const toggleChatHistory = useCallback(() => {
+    setIsChatHistoryOpen(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    console.log("Tour started:", isTourStarted);  // Debug log
+  }, [isTourStarted]);
 
   return (
     <div className="app-container">
       <div className="content-wrapper">
         <JarvisContainer isSpeaking={isSpeaking} isRecording={isRecording} />
-        <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} />
-        <TourGuide />
+        <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} isLoading={isLoading} />
+        {currentPage && (
+          <TourGuide
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            isTourStarted={isTourStarted}
+            setIsTourStarted={setIsTourStarted}
+            tourSteps={tourSteps}
+          />
+        )}
       </div>
       <ChatInterface 
         userInput={userInput}

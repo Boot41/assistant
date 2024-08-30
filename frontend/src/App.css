@@ -123,9 +123,9 @@
   position: fixed;
   top: 80px;
   right: 20px;
-  width: 30%; /* Increased width */
-  max-width: 400px; /* Increased max-width */
-  height: calc(100vh - 100px);
+  width: 30%;
+  max-width: 400px;
+  height: calc(100vh - 200px);
   background-color: #1e1e1e;
   color: white;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
@@ -134,7 +134,7 @@
   display: flex;
   flex-direction: column;
   border-radius: 10px;
-  padding: 15px; /* Added padding around the entire sidebar */
+  padding: 15px;
 }
 
 .chat-history-container {
@@ -188,13 +188,54 @@
 .tour-step {
   position: fixed;
   bottom: 100px;
-  right: 20px;
+  left: 20px;
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 20px;
   border-radius: 10px;
   max-width: 300px;
-  z-index: 1000;
+  z-index: 999;
+}
+
+.tour-step button {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+ollbar styling */
+.chat-history-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-history-sidebar::-webkit-scrollbar-track {
+  background: #2b2b2b;
+  border-radius: 4px;
+}
+
+.chat-history-sidebar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.chat-history-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.tour-step {
+  position: fixed;
+  bottom: 100px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 300px;
+  z-index: 999;
 }
 
 .tour-step button {

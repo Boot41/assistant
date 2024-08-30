@@ -15,7 +15,9 @@ class Company(models.Model):
     description = models.TextField()
     industry = models.CharField(max_length=100)
     founded_year = models.PositiveIntegerField(
-        validators=[MinValueValidator(1800), MaxValueValidator(2100)]
+        validators=[MinValueValidator(1800), MaxValueValidator(2100)],
+        null=True,  # Add this line
+        blank=True  # Add this line
     )
     website = models.URLField()
     logo = models.ImageField(upload_to='company_logos/', null=True, blank=True)
@@ -86,6 +88,19 @@ class TourStep(models.Model):
 
     def __str__(self):
         return f"{self.company.name} - {self.order}. {self.title}"
+
+    next_step = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='previous_step')
+
+    class Meta:
+        ordering = ['order']
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.next_step:
+            next_step = TourStep.objects.filter(company=self.company, order__gt=self.order).order_by('order').first()
+            if next_step and next_step != self:
+                self.next_step = next_step
+                self.save()
 
 class Content(models.Model):
     CONTENT_TYPES = (
