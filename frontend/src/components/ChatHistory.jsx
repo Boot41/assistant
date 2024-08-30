@@ -45,7 +45,11 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       <div className="chat-history-header">Chat History</div>
-      <div className="chat-history-container" ref={chatContainerRef}>
+      <div 
+        className="chat-history-container" 
+        ref={chatContainerRef}
+        style={{ padding: '16px' }} // Added padding to the container
+      >
         <AnimatePresence>
           {chatHistory.map((message, index) => (
             <motion.div
@@ -55,6 +59,7 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              style={{ marginBottom: '16px', marginLeft: "30px"}} // Added margin between message groups
             >
               <div className="message-avatar">
                 {message.role === 'user' ? '👤' : '🤖'}
@@ -63,6 +68,7 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
                 <div 
                   className="message-content"
                   dangerouslySetInnerHTML={sanitizeAndCreateLinks(message.content)}
+                  style={{ marginBottom: '8px'}} // Added space between content and metadata
                 />
                 <div className="message-metadata">
                   <span className="message-timestamp">
