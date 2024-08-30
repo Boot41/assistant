@@ -79,7 +79,7 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
                 backgroundColor: message.role === 'user' ? '#2c2c2c' : '#3a3a3a',
                 color: '#ffffff',
                 borderRadius: "10px",
-                marginLeft: "23px",
+                marginLeft: "30px",
                 maxWidth: '100%',
                 wordWrap: 'break-word',
                 fontSize: '0.95em',
