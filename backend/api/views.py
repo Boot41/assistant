@@ -159,8 +159,8 @@ def navigate_to_page(request):
             return JsonResponse({"error": "Missing current_page"}, status=400)
 
         # Assuming you want to use a specific company, you can set it here
-        # For example, using the company with id=1 as mentioned earlier
-        company = Company.objects.get(id=1)
+        # For example, using the company with id=5 as mentioned earlier
+        company = Company.objects.get(id=5)
         
         next_step = TourStep.objects.filter(company=company, page_name__gt=current_page).order_by('page_name').first()
         
@@ -424,7 +424,7 @@ def get_detailed_analytics(request):
 @api_view(['GET'])
 def get_tour_steps(request):
     try:
-        company = Company.objects.get(id=1)  # Specifically get company with id 5
+        company = Company.objects.get(id=5)  # Specifically get company with id 5
         steps = TourStep.objects.filter(company=company).order_by('order')
         if steps.exists():
             data = [{
