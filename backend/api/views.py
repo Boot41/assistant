@@ -23,7 +23,7 @@ def chat_interaction(request):
     current_page = data.get('current_page', 'home')
     is_tour_started = data.get('is_tour_started', False)
     model_name = data.get('model_name', '4o-mini')
-
+    
     assistant = GPTAssistant(is_tour_started=is_tour_started, current_page=current_page, model_name=model_name)
     response = assistant.generate_response(user_input)
 

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .youtube_views import handle_youtube_command
 
 urlpatterns = [
     # Tour related endpoints
@@ -27,6 +28,8 @@ urlpatterns = [
     path('tour-steps/', views.get_tour_steps, name='get_tour_steps'),
     # Initial page endpoint
     path('initial-page/', views.get_initial_page, name='get_initial_page'),
+    # YouTube command endpoint
+    path('youtube/', handle_youtube_command, name='handle_youtube_command'),
 ]
 
 if settings.DEBUG:
