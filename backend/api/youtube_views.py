@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 import json
+import pdb
 
 def extract_yt_term(command):
     pattern = r'play\s+(.*?)\s+on\s+youtube'
@@ -25,32 +26,27 @@ def handle_youtube_command(request):
         data = json.loads(request.body)
         query = data.get('query', '')
 
-        if "on youtube" in query.lower():
-            search_term = extract_yt_term(query)
-            if search_term:
-                url = get_youtube_url(search_term)
-                if url:
-                    return JsonResponse({
-                        "status": "success",
-                        "message": f"Found YouTube video for {search_term}",
-                        "search_term": search_term,
-                        "youtube_url": url
-                    })
-                else:
-                    return JsonResponse({
-                        "status": "error",
-                        "message": "Failed to get YouTube URL"
-                    }, status=500)
+        search_term = extract_yt_term(query)
+        if search_term:
+            url = get_youtube_url(search_term)
+            if url:
+                return JsonResponse({
+                    "status": "success",
+                    "message": f"Found YouTube video for {search_term}",
+                    "search_term": search_term,
+                    "youtube_url": url
+                })
             else:
                 return JsonResponse({
                     "status": "error",
-                    "message": "Could not extract search term from the query"
-                }, status=400)
+                    "message": "Failed to get YouTube URL"
+                }, status=500)
         else:
             return JsonResponse({
                 "status": "error",
-                "message": "Invalid YouTube command"
+                "message": "Could not extract search term from the query"
             }, status=400)
+
     except json.JSONDecodeError:
         return JsonResponse({
             "status": "error",

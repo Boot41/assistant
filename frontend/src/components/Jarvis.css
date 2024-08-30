@@ -15,8 +15,15 @@ body {
 .square {
   width: 100%;
   height: 100%;
-  max-width: 400px;
-  max-height: 400px;
+  position: relative;
+}
+
+.square span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .square span:nth-child(1),
@@ -65,4 +72,12 @@ body {
 @keyframes animate3 {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+#JarvisHood {
+  transition: all 0.5s ease-in-out;
+}
+
+#JarvisHood.minimized {
+  /* No additional styles needed here, everything is handled inline */
 }

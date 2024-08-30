@@ -11,6 +11,9 @@ export function useChat() {
 
   const [tourSteps, setTourSteps] = useState([]);
 
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState(null);
+  const [isYoutubeModalOpen, setIsYoutubeModalOpen] = useState(false);
+
   useEffect(() => {
     setChatHistory([{ role: 'assistant', content: "Hello! I'm Echo, your AI assistant. How can I help you today?" }]);
     fetchInitialPage();
@@ -172,6 +175,11 @@ export function useChat() {
         await startTour();
       } else if (tourCommand === 'next') {
         await handleNextStep();
+      } else if (userInput.toLowerCase().includes('youtube')) {
+        const youtubeResponse = await handleYouTubeCommand(userInput);
+        const newAssistantMessage = { role: 'assistant', content: youtubeResponse };
+        setChatHistory(prevHistory => [...prevHistory, newAssistantMessage]);
+        speakResponse(youtubeResponse);
       } else {
         const response = await axios.post('http://localhost:8000/api/chat/', {
           user_input: userInput,
@@ -201,6 +209,21 @@ export function useChat() {
     }
   }, [userInput, currentPage, isTourStarted, checkForTourCommands, startTour, handleNextStep]);
 
+  const handleYouTubeCommand = async (input) => {
+    try {
+      const response = await axios.post('http://localhost:8000/api/youtube/', {
+        query: input  // Change 'user_input' to 'query'
+      });
+      console.log('YouTube URL:', response.data.youtube_url);
+      setYoutubeVideoUrl(response.data.youtube_url);
+      setIsYoutubeModalOpen(true);
+      return `I've found a video for "${response.data.search_term}". It's now playing in a popup window.`;
+    } catch (error) {
+      console.error('Error handling YouTube command:', error);
+      return 'Sorry, I encountered an error while processing your YouTube request.';
+    }
+  };
+
   return {
     chatHistory,
     isSpeaking,
@@ -214,6 +237,10 @@ export function useChat() {
     setIsTourStarted,
     tourSteps,
     startTour,
-    navigateToNextPage
+    navigateToNextPage,
+    youtubeVideoUrl,
+    setYoutubeVideoUrl,
+    isYoutubeModalOpen,
+    setIsYoutubeModalOpen
   };
 }
