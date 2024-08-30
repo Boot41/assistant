@@ -43,9 +43,28 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
       initial={{ x: '100%' }}
       animate={{ x: isOpen ? 0 : '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: '500px', // Increased width to 350px
+        backgroundColor: '#1e1e1e',
+        color: '#ffffff'
+      }}
     >
-      <div className="chat-history-header">Chat History</div>
-      <div className="chat-history-container" ref={chatContainerRef}>
+      <div className="chat-history-header" style={{ padding: '10px', borderBottom: '1px solid #333' }}>Chat History</div>
+      <div 
+        className="chat-history-container" 
+        ref={chatContainerRef}
+        style={{ 
+          padding: '15px', 
+          overflowY: 'auto', 
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
         <AnimatePresence>
           {chatHistory.map((message, index) => (
             <motion.div
@@ -55,16 +74,24 @@ function ChatHistory({ chatHistory, isOpen, isLoading }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              style={{ 
+                padding: '10px', 
+                backgroundColor: message.role === 'user' ? '#2c2c2c' : '#3a3a3a',
+                color: '#ffffff',
+                borderRadius: "10px",
+                marginLeft: "23px",
+                maxWidth: '100%',
+                wordWrap: 'break-word',
+                fontSize: '0.95em',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)'
+              }}
             >
-              <div className="message-avatar">
-                {message.role === 'user' ? '👤' : '🤖'}
-              </div>
               <div className="message-content-wrapper">
                 <div 
                   className="message-content"
                   dangerouslySetInnerHTML={sanitizeAndCreateLinks(message.content)}
                 />
-                <div className="message-metadata">
+                <div className="message-metadata" style={{ marginTop: '5px', fontSize: '0.8em', color: '#aaa' }}>
                   <span className="message-timestamp">
                     {formatTimestamp(message.timestamp)}
                   </span>
@@ -101,3 +128,4 @@ ChatHistory.defaultProps = {
 };
 
 export default ChatHistory;
+n
