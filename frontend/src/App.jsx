@@ -6,9 +6,10 @@ import ChatHistory from './components/ChatHistory';
 import ChatHistoryToggle from './components/ChatHistoryToggle';
 import { useChat } from './hooks/useChat';
 import TourGuide from './components/TourGuide';
+import YouTubeModal from './components/YouTubeModal';
 
 function App() {
-  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage, isTourStarted, setIsTourStarted, tourSteps } = useChat();
+  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage, isTourStarted, setIsTourStarted, tourSteps, youtubeVideoUrl, setYoutubeVideoUrl, isYoutubeModalOpen, setIsYoutubeModalOpen } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
@@ -47,6 +48,14 @@ function App() {
       <ChatHistoryToggle 
         isOpen={isChatHistoryOpen} 
         toggleChatHistory={toggleChatHistory} 
+      />
+      <YouTubeModal
+        videoUrl={youtubeVideoUrl}
+        isOpen={isYoutubeModalOpen}
+        onClose={() => {
+          setIsYoutubeModalOpen(false);
+          setYoutubeVideoUrl(null);
+        }}
       />
     </div>
   );

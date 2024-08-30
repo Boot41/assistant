@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Jarvis.css';
 
-const Jarvis = ({isRecording}) => {
+const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef }) => {
   const canvasRef = useRef(null);
+  const [position, setPosition] = useState({ top: '50%', left: '50%' });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -243,8 +244,32 @@ const Jarvis = ({isRecording}) => {
     };
   }, [isRecording]);
 
+  useEffect(() => {
+    if (isMinimized && playerRef.current && !isClosing) {
+      const rect = playerRef.current.getBoundingClientRect();
+      setPosition({
+        top: `${rect.top}px`,
+        left: `${rect.left - 130}px`, // Adjust this value as needed
+      });
+    } else {
+      setPosition({ top: '50%', left: '50%' });
+    }
+  }, [isMinimized, isClosing, playerRef]);
+
   return (
-    <div id="JarvisHood" style={{width: '100%', height: '100%', position: 'relative'}}>
+    <div id="JarvisHood" className={isMinimized && !isClosing ? 'minimized' : ''} style={{
+      width: '400px', 
+      height: '400px', 
+      position: 'fixed',
+      transition: 'all 0.5s ease-in-out',
+      top: isMinimized && !isClosing ? position.top : '50%',
+      left: isMinimized && !isClosing ? position.left : '50%',
+      transform: isMinimized && !isClosing
+        ? 'scale(0.25)' 
+        : 'translate(-50%, -50%) scale(1)',
+      transformOrigin: 'top left',
+      zIndex: isMinimized ? 1001 : 1
+    }}>
       <canvas ref={canvasRef} width="400" height="400" style={{
         position: 'absolute',
         zIndex: 1,
