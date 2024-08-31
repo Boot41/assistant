@@ -247,3 +247,48 @@ ollbar styling */
   cursor: pointer;
   margin-top: 10px;
 }
+
+/* Add these styles at the end of your existing App.css */
+
+.app-container {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+}
+
+.content-wrapper {
+  position: relative;
+}
+
+.jarvis-container {
+  filter: drop-shadow(0 0 20px rgba(0, 72, 255, 0.2));
+}
+
+.chat-history-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+}
+
+.chat-message {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.input-container {
+  background-color: rgba(43, 43, 43, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.chat-input {
+  transition: all 0.3s ease;
+}
+
+.chat-input:focus {
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.5);
+}
+
+.chat-submit-button, .record-button {
+  transition: all 0.3s ease;
+}
+
+.chat-submit-button:hover, .record-button:hover {
+  background-color: #0077e6;
+}

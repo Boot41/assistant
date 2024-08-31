@@ -1,6 +1,37 @@
 .jarvis-blob {
-    width: 300px;
-    height: 300px;
-    background-color: rgba(0, 72, 255, 0.1);
+    width: 400px;
+    height: 400px;
+    position: fixed;
+    transition: all 0.5s ease-in-out;
+    z-index: 1000;
     border-radius: 50%;
-  }
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 72, 255, 0.3);
+}
+
+.jarvis-blob canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.jarvis-blob .inner-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 60%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,72,255,0.2) 0%, rgba(0,72,255,0.1) 70%, rgba(0,72,255,0) 100%);
+    transition: all 0.3s ease-in-out;
+}
+
+.jarvis-blob .inner-circle.recording {
+    background: radial-gradient(circle, rgba(235,94,52,0.2) 0%, rgba(235,94,52,0.1) 70%, rgba(235,94,52,0) 100%);
+    box-shadow: 0 0 20px rgba(235,94,52,0.5);
+}
+
+.jarvis-blob.minimized {
+    width: 100px;
+    height: 100px;
+}
