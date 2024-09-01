@@ -4,6 +4,7 @@ from .ai_models import AIModelFactory
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.db.models import Q, F, Value, FloatField
 from django.db.models.functions import Coalesce
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,6 +16,18 @@ class GPTAssistant:
         self.model_name = model_name
         self.ai_model = AIModelFactory.get_model(model_name)
         self.full_response = ""
+        self.engagement_phrases = [
+            "What would you like to explore next?",
+            "Is there a particular aspect you're curious about?",
+            "How can I provide more detailed information for you?",
+            "Which part of Think41 intrigues you the most?",
+            "What other areas of our company would you like to discover?",
+            "Is there anything specific you'd like me to elaborate on?",
+            "Where shall we focus our exploration next?",
+            "What other questions do you have about Think41?",
+            "How else can I assist you in learning about our company?",
+            "Which of our services or areas would you like to know more about?"
+        ]
 
     def generate_response(self, user_input):
         logger.info(f"Generating response for user input: {user_input}")
@@ -35,12 +48,16 @@ Guidelines:
 1. Provide a concise initial response (50-75 words) that addresses the main point of the user's query.
 2. Follow the initial response with "Would you like to know more about this?" to offer additional information.
 3. If the user asks about Think41's services, founders, background, or any related information, focus on the most relevant details in the initial response.
-4. For website tours, briefly mention the main sections (Home, Services, About Us, Contact) in the initial response.
+4. For website tours:
+   a. If the tour hasn't started and the user asks to start a tour, respond enthusiastically and mention that you'll guide them through the main sections (Home, Services, About Us, Contact).
+   b. If the tour is in progress and the user asks for the next step, provide information about the next section and how to navigate there.
+   c. Briefly mention the main sections (Home, Services, About Us, Contact) in the initial response when discussing the tour.
 5. If asked about navigating to a specific page, provide brief instructions in the initial response.
 6. For unrelated questions, politely redirect to Think41 topics in the initial response.
 7. Address inappropriate language with a brief, polite message about professional communication.
 8. If unsure, offer to help find information on the Think41 website or suggest contacting Think41 directly.
 9. Always maintain a professional, friendly, and helpful tone.
+10. If the user asks to end the tour, confirm that the tour has ended and offer to answer any other questions about Think41.
 
 Initial Response:"""
         
@@ -48,12 +65,17 @@ Initial Response:"""
         ai_response = self.ai_model.generate_response(prompt)
         
         if ai_response:
-            # Split the response into initial and full responses
-            response_parts = ai_response.split("Would you like to know more about this?")
-            initial_response = response_parts[0].strip()
-            self.full_response = ai_response if len(response_parts) == 1 else response_parts[1].strip()
+            # Remove the fixed phrase from the AI response
+            ai_response = ai_response.replace("Would you like to know more about this?", "").strip()
             
-            response = f"{initial_response}\n\nWould you like to know more about this?"
+            # Choose a random engagement phrase
+            engagement_phrase = random.choice(self.engagement_phrases)
+            
+            # Combine the AI response with the engagement phrase
+            response = f"{ai_response}\n\n{engagement_phrase}"
+            
+            # Store the full response without the engagement phrase
+            self.full_response = ai_response
         else:
             response = "I apologize, but I'm having trouble generating a response at the moment. How else can I assist you with information about Think41 or help you navigate our website?"
             self.full_response = ""

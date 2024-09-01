@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import PropTypes from 'prop-types';
@@ -24,10 +24,16 @@ function ChatHistory({ chatHistory, isOpen, isLoading = false }) {
 
   const sanitizeAndCreateLinks = (content) => {
     content = formatMessage(content);
+    
+    // Remove spaces in URLs
+    content = content.replace(/https: \/\/www\. linkedin\. com/g, 'https://www.linkedin.com');
+    
     const linkedInRegex = /\[([^\]]+)\]\((https:\/\/www\.linkedin\.com\/[^)]+)\)/g;
     let contentWithLinks = content.replace(linkedInRegex, '<a href="$2" target="_blank" rel="noopener noreferrer" class="linkedin-link">$1</a>');
     contentWithLinks = contentWithLinks.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
     const sanitizedContent = DOMPurify.sanitize(contentWithLinks, { ADD_ATTR: ['target'] });
+    
     return { __html: sanitizedContent };
   };
 

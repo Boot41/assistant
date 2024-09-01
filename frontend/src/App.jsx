@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import './App.css';
+
 import JarvisContainer from './components/JarvisContainer';
 import ChatInterface from './components/ChatInterface';
 import ChatHistory from './components/ChatHistory';
@@ -7,9 +8,29 @@ import ChatHistoryToggle from './components/ChatHistoryToggle';
 import { useChat } from './hooks/useChat';
 import TourGuide from './components/TourGuide';
 import YouTubeModal from './components/YouTubeModal';
+import VoiceSelector from './components/VoiceSelector';
 
 function App() {
-  const { chatHistory, isSpeaking, userInput, setUserInput, handleSend, isLoading, currentPage, setCurrentPage, isTourStarted, setIsTourStarted, tourSteps, youtubeVideoUrl, setYoutubeVideoUrl, isYoutubeModalOpen, setIsYoutubeModalOpen } = useChat();
+  const { 
+    chatHistory, 
+    isSpeaking, 
+    userInput, 
+    setUserInput, 
+    handleSend, 
+    isLoading, 
+    currentPage, 
+    setCurrentPage, 
+    isTourStarted, 
+    setIsTourStarted, 
+    tourSteps, 
+    youtubeVideoUrl, 
+    setYoutubeVideoUrl, 
+    isYoutubeModalOpen, 
+    setIsYoutubeModalOpen, 
+    voices, 
+    selectedVoice, 
+    setSelectedVoice 
+  } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
@@ -23,6 +44,13 @@ function App() {
 
   return (
     <div className="app-container">
+      <div className="header">
+        <VoiceSelector
+          voices={voices}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+        />
+      </div>
       <div className="content-wrapper">
         <JarvisContainer isSpeaking={isSpeaking} isRecording={isRecording} />
         <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} isLoading={isLoading} />

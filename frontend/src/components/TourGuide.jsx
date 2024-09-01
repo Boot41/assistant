@@ -19,22 +19,24 @@ const TourGuide = ({ currentPage, setCurrentPage, isTourStarted, setIsTourStarte
     if (!isTourStarted || tourSteps.length === 0) return null;
     const step = tourSteps[currentStep];
     return (
-      <div className="tour-step">
+      <motion.div
+        className="tour-step"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 50 }}
+        transition={{ duration: 0.3 }}
+      >
         <h3>{step.title}</h3>
         <p>{step.description}</p>
         <p>{step.content}</p>
-      </div>
+      </motion.div>
     );
   };
 
   return (
-    <>
-      {isTourStarted ? (
-        renderTourStep()
-      ) : (
-        <div>Tour not started. Use the chat to start the tour.</div>
-      )}
-    </>
+    <AnimatePresence>
+      {isTourStarted && renderTourStep()}
+    </AnimatePresence>
   );
 };
 
