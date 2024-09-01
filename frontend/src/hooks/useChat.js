@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 export function useChat() {
@@ -14,9 +14,27 @@ export function useChat() {
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState(null);
   const [isYoutubeModalOpen, setIsYoutubeModalOpen] = useState(false);
 
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(null);
+  const speechSynthesisRef = useRef(window.speechSynthesis);
+
   useEffect(() => {
     setChatHistory([{ role: 'assistant', content: "Hello! I'm Echo, your AI assistant. How can I help you today?" }]);
     fetchInitialPage();
+
+    const loadVoices = () => {
+      const availableVoices = speechSynthesisRef.current.getVoices();
+      setVoices(availableVoices);
+      const preferredVoice = availableVoices.find(voice => voice.name === 'Google UK English Female') ||
+                             availableVoices.find(voice => voice.lang === 'en-GB') ||
+                             availableVoices[0];
+      setSelectedVoice(preferredVoice);
+    };
+
+    loadVoices();
+    if (speechSynthesisRef.current.onvoiceschanged !== undefined) {
+      speechSynthesisRef.current.onvoiceschanged = loadVoices;
+    }
   }, []);
 
   const fetchInitialPage = useCallback(async () => {
@@ -30,7 +48,7 @@ export function useChat() {
     }
   }, []);
 
-  const getAIResponse = async (prompt) => {
+  const getAIResponse = useCallback(async (prompt) => {
     try {
       const response = await axios.post('http://localhost:8000/api/chat/', {
         user_input: prompt,
@@ -42,41 +60,67 @@ export function useChat() {
       console.error('Error getting AI response:', error);
       return 'I apologize, but I encountered an error. Could you please try again?';
     }
-  };
+  }, [currentPage, isTourStarted]);
 
-  const speakResponse = (text) => {
-    if ('speechSynthesis' in window) {
-      // Clear any existing speech synthesis
-      speechSynthesis.cancel();
+  const speakResponse = useCallback((text) => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
 
-      // Split text into chunks of around 200 characters, preserving whole words
-      const chunks = text.match(/\S.{1,199}(?!\S)/g) || [];
+      const processedText = preprocessTextForSpeech(text);
+      const sentences = processedText.split(/(?<=[.!?])\s+/);
 
-      let currentChunk = 0;
+      let currentSentence = 0;
 
-      const speakNextChunk = () => {
-        if (currentChunk < chunks.length) {
-          const utterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
-          utterance.rate = 1.2; // Increase speed (1.0 is normal speed)
+      const speakNextSentence = () => {
+        if (currentSentence < sentences.length) {
+          const utterance = new SpeechSynthesisUtterance(sentences[currentSentence]);
           
-          if (currentChunk === 0) {
+          utterance.voice = selectedVoice;
+          utterance.rate = 0.9 + (Math.random() * 0.2);
+          utterance.pitch = 1 + (Math.random() * 0.1 - 0.05);
+
+          if (currentSentence === 0) {
             utterance.onstart = () => setIsSpeaking(true);
           }
 
           utterance.onend = () => {
-            currentChunk++;
-            if (currentChunk < chunks.length) {
-              speakNextChunk();
+            currentSentence++;
+            if (currentSentence < sentences.length) {
+              const pauseLength = getPauseLength(sentences[currentSentence - 1]);
+              setTimeout(speakNextSentence, pauseLength);
             } else {
               setIsSpeaking(false);
             }
           };
 
-          speechSynthesis.speak(utterance);
+          speechSynthesisRef.current.speak(utterance);
         }
       };
 
-      speakNextChunk();
+      speakNextSentence();
+    }
+  }, [selectedVoice]);
+
+  const preprocessTextForSpeech = (text) => {
+    // Remove emojis
+    text = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+    
+    // Remove markdown links
+    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    
+    // Remove extra spaces
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    return text;
+  };
+
+  const getPauseLength = (sentence) => {
+    if (sentence.endsWith('?')) {
+      return 500 + Math.random() * 300;
+    } else if (sentence.endsWith('!')) {
+      return 400 + Math.random() * 200;
+    } else {
+      return 300 + Math.random() * 200;
     }
   };
 
@@ -241,6 +285,9 @@ export function useChat() {
     youtubeVideoUrl,
     setYoutubeVideoUrl,
     isYoutubeModalOpen,
-    setIsYoutubeModalOpen
+    setIsYoutubeModalOpen,
+    voices,
+    selectedVoice,
+    setSelectedVoice,
   };
 }
