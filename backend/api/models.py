@@ -4,10 +4,14 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.text import slugify
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.postgres.search import SearchVectorField
+from django.contrib.postgres.indexes import GinIndex
 
 def get_default_company():
+    from django.conf import settings
     from .models import Company
-    return Company.objects.get_or_create(name=settings.DEFAULT_COMPANY_NAME)[0]
+    company, created = Company.objects.get_or_create(name=settings.DEFAULT_COMPANY_NAME)
+    return company.id
 
 class Company(models.Model):
     name = models.CharField(max_length=200, unique=True)
@@ -170,3 +174,16 @@ class UserHistory(models.Model):
         if not self.company:
             self.company = get_default_company()
         super().save(*args, **kwargs)
+
+class UniversalContent(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    content_type = models.CharField(max_length=50)  # e.g., 'tour_step', 'company_info', 'faq'
+    metadata = models.JSONField(default=dict)  # For additional data like page_name, section_id, etc.
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        indexes = [GinIndex(fields=['search_vector'])]
+
+    def __str__(self):
+        return self.title

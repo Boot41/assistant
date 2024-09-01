@@ -40,6 +40,8 @@ urlpatterns = [
     path('logout/', user_logout, name='user_logout'),
     # Detailed analytics endpoint
     path('analytics/detailed/', get_detailed_analytics, name='get_detailed_analytics'),
+    # Search endpoint
+    path('search/', views.search_universal_content, name='search_universal_content'),
 ]
 
 if settings.DEBUG:

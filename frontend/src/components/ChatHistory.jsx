@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import PropTypes from 'prop-types';
 
-function ChatHistory({ chatHistory, isOpen, isLoading }) {
+function ChatHistory({ chatHistory, isOpen, isLoading = false }) {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
@@ -100,10 +100,6 @@ ChatHistory.propTypes = {
   })).isRequired,
   isOpen: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool,
-};
-
-ChatHistory.defaultProps = {
-  isLoading: false,
 };
 
 export default ChatHistory;

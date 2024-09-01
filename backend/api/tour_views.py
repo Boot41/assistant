@@ -214,9 +214,10 @@ def navigate_to_page(request):
         if not current_page:
             return JsonResponse({"error": "Missing current_page"}, status=400)
 
-        company = Company.objects.get(id=5)
+        # Get the latest company (assuming the latest has the highest ID)
+        latest_company = Company.objects.latest('id')
         
-        next_step = TourStep.objects.filter(company=company, page_name__gt=current_page).order_by('page_name').first()
+        next_step = TourStep.objects.filter(company=latest_company, page_name__gt=current_page).order_by('page_name').first()
         
         if next_step:
             return JsonResponse({
@@ -234,8 +235,6 @@ def navigate_to_page(request):
             return JsonResponse({"message": "No next page available", "current_step": None})
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
-    except Company.DoesNotExist:
-        return JsonResponse({"error": "Company not found"}, status=404)
     except Exception as e:
         logger.error(f"Error in navigate_to_page: {str(e)}", exc_info=True)
         return JsonResponse({"error": "An unexpected error occurred"}, status=500)
