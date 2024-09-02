@@ -187,3 +187,17 @@ class UniversalContent(models.Model):
 
     def __str__(self):
         return self.title
+
+class PPTSlide(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    transcript = models.TextField()
+    order = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Slide {self.order}: {self.title}"
