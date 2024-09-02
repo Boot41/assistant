@@ -10,6 +10,7 @@ from .content_views import get_content
 from .user_views import user_login, user_logout
 from .analytics_views import get_tour_analytics, get_detailed_analytics
 from .youtube_views import handle_youtube_command
+from .ppt_presenter import get_ppt_data
 
 urlpatterns = [
     # Tour related endpoints
@@ -42,6 +43,8 @@ urlpatterns = [
     path('analytics/detailed/', get_detailed_analytics, name='get_detailed_analytics'),
     # Search endpoint
     path('search/', views.search_universal_content, name='search_universal_content'),
+    # PPT data endpoint
+    path('ppt-data/', get_ppt_data, name='get_ppt_data'),
 ]
 
 if settings.DEBUG:
