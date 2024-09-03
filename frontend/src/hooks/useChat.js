@@ -18,6 +18,9 @@ export function useChat() {
   const [selectedVoice, setSelectedVoice] = useState(null);
   const speechSynthesisRef = useRef(window.speechSynthesis);
 
+  const [presentationData, setPresentationData] = useState(null);
+  const [isPresentationModalOpen, setIsPresentationModalOpen] = useState(false);
+
   useEffect(() => {
     setChatHistory([{ role: 'assistant', content: "Hello! I'm Echo, your AI assistant. How can I help you today?" }]);
     fetchInitialPage();
@@ -206,6 +209,29 @@ export function useChat() {
     return null;
   }, [isTourStarted]);
 
+  const handlePresentationCommand = async (input) => {
+    console.log('handlePresentationCommand called with input:', input);
+    try {
+      const response = await axios.post('http://localhost:8000/api/ppt-data/', {
+        query: input
+      });
+      console.log('Presentation Data received:', response.data);
+      setPresentationData(response.data);
+      setIsPresentationModalOpen(true);
+      console.log('States updated - presentationData:', response.data, 'isPresentationModalOpen:', true);
+      
+      // Add a setTimeout to check if the state has been updated after a short delay
+      setTimeout(() => {
+        console.log('Delayed check - presentationData:', presentationData, 'isPresentationModalOpen:', isPresentationModalOpen);
+      }, 100);
+
+      return `I've found a presentation for "${response.data.ppt_data[0].title}". It's now available in a popup window.`;
+    } catch (error) {
+      console.error('Error handling presentation command:', error);
+      return 'Sorry, I encountered an error while processing your presentation request.';
+    }
+  };
+
   const handleSend = useCallback(async () => {
     if (userInput.trim() === '') return;
 
@@ -224,6 +250,12 @@ export function useChat() {
         const newAssistantMessage = { role: 'assistant', content: youtubeResponse };
         setChatHistory(prevHistory => [...prevHistory, newAssistantMessage]);
         speakResponse(youtubeResponse);
+      } else if (userInput.toLowerCase().includes('presentation')) {
+        console.log('Presentation command detected');
+        const presentationResponse = await handlePresentationCommand(userInput);
+        const newAssistantMessage = { role: 'assistant', content: presentationResponse };
+        setChatHistory(prevHistory => [...prevHistory, newAssistantMessage]);
+        speakResponse(presentationResponse);
       } else {
         const response = await axios.post('http://localhost:8000/api/chat/', {
           user_input: userInput,
@@ -251,7 +283,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [userInput, currentPage, isTourStarted, checkForTourCommands, startTour, handleNextStep]);
+  }, [userInput, currentPage, isTourStarted, checkForTourCommands, startTour, handleNextStep, handlePresentationCommand]);
 
   const handleYouTubeCommand = async (input) => {
     try {
@@ -289,5 +321,8 @@ export function useChat() {
     voices,
     selectedVoice,
     setSelectedVoice,
+    presentationData,
+    isPresentationModalOpen,
+    setIsPresentationModalOpen,
   };
 }

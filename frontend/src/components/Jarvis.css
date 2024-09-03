@@ -1,125 +1,191 @@
 body {
-    background-color: black;
-    overflow-y: hidden;
-    overflow-x: hidden;
+  background-color: black;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 #Oval {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: pulse 4s ease-in-out infinite;
+width: 100%;
+height: 100%;
+display: flex;
+justify-content: center;
+align-items: center;
+animation: pulse 4s ease-in-out infinite;
 }
 
 .square {
-  width: 100%;
-  height: 100%;
-  position: relative;
+width: 100%;
+height: 100%;
+position: relative;
 }
 
 .square span {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.8;
-  mix-blend-mode: screen;
-  transition: background-image 0.5s ease, box-shadow 0.5s ease;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+opacity: 0.8;
+mix-blend-mode: screen;
+transition: background-image 0.5s ease, box-shadow 0.5s ease;
 }
 
 .square span:nth-child(1),
 .square span:nth-child(2),
 .square span:nth-child(3) {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(#6b72ff00 50%, #000dff3b 40%);
-    box-shadow: 0 0 50px rgb(25,0,255), inset 0 0 50px rgb(25,0,255);
-    border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
-    transition: 0.5s;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(#6b72ff00 50%, #000dff3b 40%);
+  box-shadow: 0 0 50px rgb(25,0,255), inset 0 0 50px rgb(25,0,255);
+  border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
+  transition: 0.5s;
 }
 
 .square.recording span:nth-child(1),
 .square.recording span:nth-child(2),
 .square.recording span:nth-child(3) {
-    background-image: radial-gradient(#6b72ff00 50%, #eb5e343b 40%);
-    box-shadow: 0 0 50px rgb(235, 94, 52), inset 0 0 50px rgb(235, 94, 52);
+  background-image: radial-gradient(#6b72ff00 50%, #eb5e343b 40%);
+  box-shadow: 0 0 50px rgb(235, 94, 52), inset 0 0 50px rgb(235, 94, 52);
 }
 
 .square span:nth-child(1) {
-    animation: animate1 6s linear infinite;
+  animation: animate1 6s linear infinite;
 }
 
 .square span:nth-child(2) {
-    animation: animate2 4s linear infinite;
+  animation: animate2 4s linear infinite;
 }
 
 .square span:nth-child(3) {
-    animation: animate3 8s linear infinite;
+  animation: animate3 8s linear infinite;
 }
 
 @keyframes animate1 {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes animate2 {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(-360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
 }
 
 @keyframes animate3 {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 #JarvisHood {
-  transition: all 0.5s ease-in-out;
+transition: all 0.5s ease-in-out;
 }
 
 #JarvisHood.minimized {
-  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
 #JarvisHood.minimized:hover {
-  transform: scale(1.1);
+transform: scale(1.1);
 }
 
 #JarvisHood:hover .square span {
-  filter: brightness(1.2);
-  transition: filter 0.3s ease;
+filter: brightness(1.2);
+transition: filter 0.3s ease;
 }
 
 #JarvisHood:focus-visible {
-  outline: 3px solid #ffffff;
-  outline-offset: 5px;
+outline: 3px solid #ffffff;
+outline-offset: 5px;
+}
+
+#JarvisHood.presentation {
+width: 100px;
+height: 100px;
+top: 10%;
+left: 10%;
+transform: scale(0.25);
+z-index: 2001; /* Increased z-index to ensure it is above the presentation container */
 }
 
 .square span {
-  will-change: transform;
+will-change: transform;
 }
 
 #JarvisHood::after {
-  content: '';
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  background: inherit;
-  filter: blur(20px);
-  opacity: 0.7;
-  z-index: -1;
-  border-radius: inherit;
+content: '';
+position: absolute;
+top: -10px;
+left: -10px;
+right: -10px;
+bottom: -10px;
+background: inherit;
+filter: blur(20px);
+opacity: 0.7;
+z-index: -1;
+border-radius: inherit;
+}
+
+.presentation-overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+z-index: 2000; /* Ensure the presentation container is below the blob */
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 0; /* Remove padding */
+margin: 0; /* Remove margin */
+}
+
+.presentation-container {
+position: relative;
+width: 90vw; /* Set width to 100% of the viewport */
+height: 75vh; /* Set height to 100% of the viewport */
+background-color: white;
+border-radius: 0; /* Remove border radius */
+overflow: hidden;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 0; /* Remove padding */
+margin: 0; /* Remove margin */
+}
+
+.presentation-container iframe {
+width: 100%;
+height: 100%;
+border: none;
+object-fit: cover; /* Ensure the iframe content covers the container */
+object-position: center; /* Center the iframe content */
+padding: 0; /* Ensure no padding */
+margin: 0; /* Ensure no margin */
+}
+
+.close-presentation-btn {
+position: absolute;
+top: 10px;
+right: 10px;
+background-color: #ff4444;
+color: white;
+border: none;
+padding: 10px 20px;
+font-size: 16px;
+cursor: pointer;
+border-radius: 5px;
+transition: background-color 0.3s;
+z-index: 2001;
+}
+
+.close-presentation-btn:hover {
+background-color: #ff0000;
 }

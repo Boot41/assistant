@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import './Jarvis.css';
 
-const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef }) => {
+const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef, presentationData, isPresentationModalOpen, setIsPresentationModalOpen }) => {
   const canvasRef = useRef(null);
   const [position, setPosition] = useState({ top: '50%', left: '50%' });
 
@@ -254,48 +254,74 @@ const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef }) => {
   }, [isRecording]);
 
   useEffect(() => {
-    if (isMinimized && playerRef.current && !isClosing) {
+    if (isPresentationModalOpen) {
+      setPosition({ top: '10%', left: '10%' }); // Adjust this value as needed
+      console.log('Presentation modal is open, setting position to top: 10%, left: 10%');
+    } else if (isMinimized && playerRef.current && !isClosing) {
       const rect = playerRef.current.getBoundingClientRect();
       setPosition({
         top: `${rect.top}px`,
         left: `${rect.left - 130}px`, // Adjust this value as needed
       });
+      console.log('Minimized and not closing, setting position based on playerRef');
     } else {
       setPosition({ top: '50%', left: '50%' });
+      console.log('Default position, setting to top: 50%, left: 50%');
     }
-  }, [isMinimized, isClosing, playerRef]);
+  }, [isPresentationModalOpen, isMinimized, isClosing, playerRef]);
+
+  console.log('Jarvis - presentationData:', presentationData);
+  console.log('Jarvis - isPresentationModalOpen:', isPresentationModalOpen);
+  console.log('Jarvis - setIsPresentationModalOpen:', setIsPresentationModalOpen);
+
+  useEffect(() => {
+    console.log('Jarvis - props changed:', { presentationData, isPresentationModalOpen, setIsPresentationModalOpen });
+  }, [presentationData, isPresentationModalOpen, setIsPresentationModalOpen]);
 
   return (
-    <div id="JarvisHood" className={isMinimized && !isClosing ? 'minimized' : ''} style={{
-      width: '400px', 
-      height: '400px', 
-      position: 'fixed',
-      transition: 'all 0.5s ease-in-out',
-      top: isMinimized && !isClosing ? position.top : '50%',
-      left: isMinimized && !isClosing ? position.left : '50%',
-      transform: isMinimized && !isClosing
-        ? 'scale(0.25)' 
-        : 'translate(-50%, -50%) scale(1)',
-      transformOrigin: 'top left',
-      zIndex: isMinimized ? 1001 : 1
-    }}>
-      <canvas ref={canvasRef} width="400" height="400" style={{
-        position: 'absolute',
-        zIndex: 1,
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%'
-      }}></canvas>
-      <div className={`square ${isRecording ? 'recording' : ''}`}>
-        <span></span>
-        <span></span>
-        <span></span>
+    <>
+      <div id="JarvisHood" className={`${isMinimized && !isClosing ? 'minimized' : ''} ${isPresentationModalOpen ? 'presentation' : ''}`} style={{
+        width: '400px', 
+        height: '400px', 
+        position: 'fixed',
+        transition: 'all 0.5s ease-in-out',
+        top: isPresentationModalOpen ? '10%' : (isMinimized && !isClosing ? position.top : '50%'),
+        left: isPresentationModalOpen ? '10%' : (isMinimized && !isClosing ? position.left : '50%'),
+        transform: isPresentationModalOpen
+          ? 'scale(0.25)'
+          : (isMinimized && !isClosing ? 'scale(0.25)' : 'translate(-50%, -50%) scale(1)'),
+        transformOrigin: 'top left',
+        zIndex: isPresentationModalOpen ? 2001 : (isMinimized ? 1001 : 1) // Ensure z-index is set correctly
+      }}>
+        <canvas ref={canvasRef} width="400" height="400" style={{
+          position: 'absolute',
+          zIndex: 1,
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%'
+        }}></canvas>
+        <div className={`square ${isRecording ? 'recording' : ''}`}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
-    </div>
+      {isPresentationModalOpen && presentationData && (
+        <div className="presentation-overlay">
+          <div className="presentation-container">
+            <iframe
+              src={`${presentationData.ppt_url.replace('/edit', '/embed')}?start=false&loop=false&delayms=3000`}
+              width="100%"
+              height="100%"
+              allowFullScreen
+            ></iframe>
+            <button className="close-presentation-btn" onClick={() => setIsPresentationModalOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export default Jarvis;
-
-//added presentation component using ifram

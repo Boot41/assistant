@@ -29,7 +29,10 @@ function App() {
     setIsYoutubeModalOpen, 
     voices, 
     selectedVoice, 
-    setSelectedVoice 
+    setSelectedVoice,
+    presentationData,
+    isPresentationModalOpen,
+    setIsPresentationModalOpen
   } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -52,7 +55,13 @@ function App() {
         />
       </div>
       <div className="content-wrapper">
-        <JarvisContainer isSpeaking={isSpeaking} isRecording={isRecording} />
+        <JarvisContainer 
+          isSpeaking={isSpeaking} 
+          isRecording={isRecording}
+          presentationData={presentationData}
+          isPresentationModalOpen={isPresentationModalOpen}
+          setIsPresentationModalOpen={setIsPresentationModalOpen}
+        />
         <ChatHistory chatHistory={chatHistory} isOpen={isChatHistoryOpen} isLoading={isLoading} />
         {currentPage && (
           <TourGuide
