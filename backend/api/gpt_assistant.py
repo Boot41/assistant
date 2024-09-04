@@ -1,7 +1,7 @@
 import logging
 from .models import UniversalContent
 from .ai_models import AIModelFactory
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
 from django.db.models import Q, F, Value, FloatField
 from django.db.models.functions import Coalesce
 import random
@@ -93,18 +93,21 @@ Initial Response:"""
         if self.full_response:
             return {"response": self.full_response}
         else:
-            return {"response": "I'm sorry, but I don't have any additional information on this topic at the moment. Is there anything else I can help you with regarding Think41 or navigating our website?"}
+            return {"response": "I'm sorry, but I don't have any additional information on this topic at the moment. Is there anything else you'd like me to elaborate on regarding Think41 or navigating our website?"}
 
     def get_context(self, user_input):
         relevant_content = self.search_relevant_content(user_input)
         context = ""
         
-        logger.info(f"Found {len(relevant_content)} relevant content items")
-        
-        for content in relevant_content:
-            logger.info(f"Content item: Title: {content.title}, Type: {content.content_type}")
-            context += f"{content.title}:\n{content.content}\n\n"
-        
+        if relevant_content:
+            logger.info(f"Found {len(relevant_content)} relevant content items")
+            for content in relevant_content:
+                logger.info(f"Content item: Title: {content.title}, Type: {content.content_type}")
+                context += f"{content.title}:\n{content.content}\n\n"
+        else:
+            logger.info("No relevant content found, using default context")
+            context = "No specific context found in the database. Please provide a general response based on the user's input."
+
         return context
 
     def search_relevant_content(self, query):
@@ -113,21 +116,25 @@ Initial Response:"""
         # Create a more sophisticated search query
         search_query = SearchQuery(query, config='english')
 
-        # Use both full-text search and basic field matching
+        # Use both full-text search and trigram similarity
         relevant_content = UniversalContent.objects.annotate(
-            rank=SearchRank(F('search_vector'), search_query),
-            title_similarity=Coalesce(SearchRank(SearchVector('title'), search_query), Value(0.0), output_field=FloatField()),
-            content_similarity=Coalesce(SearchRank(SearchVector('content'), search_query), Value(0.0), output_field=FloatField())
+            rank=SearchRank(F('search_vector'), search_query) +
+                 Coalesce(SearchRank(SearchVector('title'), search_query), Value(0.0), output_field=FloatField()) * 1.5 +
+                 Coalesce(SearchRank(SearchVector('content'), search_query), Value(0.0), output_field=FloatField()),
+            trigram_similarity_title=TrigramSimilarity('title', query),
+            trigram_similarity_content=TrigramSimilarity('content', query)
         ).filter(
             Q(search_vector=search_query) |
             Q(title__icontains=query) |
-            Q(content__icontains=query)
-        ).order_by('-rank', '-title_similarity', '-content_similarity')
+            Q(content__icontains=query) |
+            Q(trigram_similarity_title__gt=0.1) |
+            Q(trigram_similarity_content__gt=0.1)
+        ).order_by('-rank', '-trigram_similarity_title', '-trigram_similarity_content')
 
         logger.info(f"Initial search found {relevant_content.count()} results")
 
         # If no results, try splitting the query into words and search again
-        if not relevant_content:
+        if not relevant_content.exists():
             logger.info("No results found, trying word-by-word search")
             words = query.split()
             q_objects = Q()
@@ -135,10 +142,12 @@ Initial Response:"""
                 q_objects |= Q(title__icontains=word) | Q(content__icontains=word)
             
             relevant_content = UniversalContent.objects.filter(q_objects).distinct().annotate(
-                rank=SearchRank(F('search_vector'), SearchQuery(' '.join(words), config='english')),
-                title_similarity=Coalesce(SearchRank(SearchVector('title'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField()),
-                content_similarity=Coalesce(SearchRank(SearchVector('content'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField())
-            ).order_by('-rank', '-title_similarity', '-content_similarity')
+                rank=SearchRank(F('search_vector'), SearchQuery(' '.join(words), config='english')) +
+                     Coalesce(SearchRank(SearchVector('title'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField()) * 1.5 +
+                     Coalesce(SearchRank(SearchVector('content'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField()),
+                trigram_similarity_title=TrigramSimilarity('title', ' '.join(words)),
+                trigram_similarity_content=TrigramSimilarity('content', ' '.join(words))
+            ).order_by('-rank', '-trigram_similarity_title', '-trigram_similarity_content')
 
             logger.info(f"Word-by-word search found {relevant_content.count()} results")
 
@@ -147,10 +156,12 @@ Initial Response:"""
         
         # Log the titles of the results for debugging
         for result in results:
-            logger.info(f"Result: {result.title} (Rank: {result.rank}, Title Sim: {result.title_similarity}, Content Sim: {result.content_similarity})")
+            logger.info(f"Result: {result.title} (Rank: {result.rank}, Trigram Sim Title: {result.trigram_similarity_title}, Trigram Sim Content: {result.trigram_similarity_content})")
 
         return results
 
 def gpt_assistant(prompt, prompt_type='create', model_name='4o-mini'):
     assistant = GPTAssistant(model_name=model_name)
     return assistant.generate_response(prompt)
+
+
