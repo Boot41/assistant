@@ -9,6 +9,8 @@ import { useChat } from './hooks/useChat';
 import TourGuide from './components/TourGuide';
 import YouTubeModal from './components/YouTubeModal';
 import VoiceSelector from './components/VoiceSelector';
+import StopSpeakingButton from './components/StopSpeakingButton';
+import TranscriptView from './components/TranscriptView';
 
 function App() {
   const { 
@@ -29,7 +31,13 @@ function App() {
     setIsYoutubeModalOpen, 
     voices, 
     selectedVoice, 
-    setSelectedVoice 
+    setSelectedVoice,
+    stopSpeaking,
+    transcript,
+    setSearchTerm,
+    setStartDate,
+    setEndDate,
+    exportTranscript
   } = useChat();
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -63,6 +71,14 @@ function App() {
             tourSteps={tourSteps}
           />
         )}
+        <TranscriptView
+          transcript={transcript}
+          setSearchTerm={setSearchTerm}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
+          exportTranscript={exportTranscript}
+        />
+        <StopSpeakingButton isSpeaking={isSpeaking} stopSpeaking={stopSpeaking} />
       </div>
       <ChatInterface 
         userInput={userInput}

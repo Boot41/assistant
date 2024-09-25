@@ -333,3 +333,22 @@ ollbar styling */
   border-radius: 4px;
   width: 100%;
 }
+
+.stop-speaking-button {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.stop-speaking-button:hover {
+  background-color: #ff3333;
+}
