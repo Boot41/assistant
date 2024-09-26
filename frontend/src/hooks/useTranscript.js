@@ -43,6 +43,10 @@ export function useTranscript() {
     URL.revokeObjectURL(url);
   }, [filteredTranscript]);
 
+  const getRecentContext = useCallback((limit = 5) => {
+    return transcript.slice(-limit).map(entry => `${entry.speaker}: ${entry.text}`).join('\n');
+  }, [transcript]);
+
   return {
     transcript: filteredTranscript,
     addToTranscript,
@@ -51,6 +55,7 @@ export function useTranscript() {
     setSearchTerm,
     setStartDate,
     setEndDate,
-    exportTranscript
+    exportTranscript,
+    getRecentContext
   };
 }

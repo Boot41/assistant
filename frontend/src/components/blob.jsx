@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import './Jarvis.css';
+import PropTypes from 'prop-types';
 
 const Jarvis = ({ isRecording, isMinimized, isClosing, playerRef }) => {
   const canvasRef = useRef(null);
   const [position, setPosition] = useState({ top: '50%', left: '50%' });
+
+  Jarvis.propTypes = {
+    isRecording: PropTypes.bool.isRequired,
+    isMinimized: PropTypes.bool.isRequired,
+    isClosing: PropTypes.bool.isRequired,
+    playerRef: PropTypes.object.isRequired
+  };
 
   const particleConfig = useMemo(() => ({
     count: 1000,

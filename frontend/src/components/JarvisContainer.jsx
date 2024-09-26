@@ -1,17 +1,25 @@
-import PropTypes from 'prop-types';
+import React, { useState, useRef } from 'react';
 import Jarvis from './blob';
 
-function JarvisContainer({ isSpeaking, isRecording }) {
+const JarvisContainer = () => {
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const playerRef = useRef(null);
+
+  // ... other state and functions ...
+
   return (
-    <div className="jarvis-container">
-      <Jarvis isSpeaking={isSpeaking} isRecording={isRecording} />
+    <div>
+      <Jarvis
+        isMinimized={isMinimized}
+        isClosing={isClosing}
+        isRecording={isRecording}
+        playerRef={playerRef}
+        // ... other props ...
+      />
     </div>
   );
-}
-
-JarvisContainer.propTypes = {
-  isSpeaking: PropTypes.bool.isRequired,
-  isRecording: PropTypes.bool.isRequired,
 };
 
 export default JarvisContainer;

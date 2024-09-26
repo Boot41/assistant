@@ -8,6 +8,7 @@ from .gpt_assistant import GPTAssistant
 import json
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
@@ -15,18 +16,15 @@ logger = logging.getLogger(__name__)
 def chat_interaction(request):
     data = json.loads(request.body)
     user_input = data.get('user_input')
-    current_page = data.get('current_page', 'home')
-    is_tour_started = data.get('is_tour_started', False)
+    context = data.get('context', '')
     model_name = data.get('model_name', '4o-mini')
     
-    assistant = GPTAssistant(is_tour_started=is_tour_started,
-        current_page=current_page, model_name=model_name)
-    response = assistant.generate_response(user_input)
+    assistant = GPTAssistant(model_name=model_name)
+    response = assistant.generate_response(user_input, context)
 
     return JsonResponse({
         'response': response['response'],
-        'current_page': current_page,
-        'is_tour_started': response['is_tour_started']
+        'has_more_info': response['has_more_info']
     })
 
 @csrf_exempt
@@ -45,27 +43,27 @@ def gpt_assistant_view(request):
 
 
 
-@api_view(['GET'])
-def get_tour_steps(request):
-    try:
-        steps = TourStep.objects.all().order_by('order')
-        if steps.exists():
-            data = [{
-                'id': step.id,
-                'title': step.title,
-                'description': step.description,
-                'content': step.content,
-                'page_name': step.page_name,
-                'order': step.order,
-                'section_id': step.section_id,
-                'content_type': step.content_type
-            } for step in steps]
-            return Response(data)
-        else:
-            return Response({"message": "No tour steps found"}, status=404)
-    except Exception as e:
-        logger.error(f"Error in get_tour_steps: {str(e)}", exc_info=True)
-        return Response({"error": "An error occurred while fetching tour steps"}, status=500)
+# @api_view(['GET'])
+# def get_tour_steps(request):
+#     try:
+#         steps = TourStep.objects.all().order_by('order')
+#         if steps.exists():
+#             data = [{
+#                 'id': step.id,
+#                 'title': step.title,
+#                 'description': step.description,
+#                 'content': step.content,
+#                 'page_name': step.page_name,
+#                 'order': step.order,
+#                 'section_id': step.section_id,
+#                 'content_type': step.content_type
+#             } for step in steps]
+#             return Response(data)
+#         else:
+#             return Response({"message": "No tour steps found"}, status=404)
+#     except Exception as e:
+#         logger.error(f"Error in get_tour_steps: {str(e)}", exc_info=True)
+#         return Response({"error": "An error occurred while fetching tour steps"}, status=500)
 
 # Add a new view to search universal content
 @api_view(['GET'])

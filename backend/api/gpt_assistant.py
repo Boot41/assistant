@@ -1,18 +1,30 @@
 import logging
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
+from django.db.models import Q, F, Value, FloatField, ExpressionWrapper
+from django.db.models.functions import Coalesce, Greatest
+from django.core.cache import cache
+from typing import List
 from .models import UniversalContent
 from .ai_models import AIModelFactory
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
-from django.db.models import Q, F, Value, FloatField
-from django.db.models.functions import Coalesce
 import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class GPTAssistant:
-    def __init__(self, is_tour_started=False, current_page='home', model_name='4o-mini'):
-        self.is_tour_started = is_tour_started
-        self.current_page = current_page
+    """
+    GPTAssistant is responsible for generating AI responses based on user input
+    and the recent conversation context. It utilizes retrieval-augmented generation (RAG)
+    to fetch relevant information from the database to provide accurate and contextually
+    appropriate responses.
+    """
+    def __init__(self, model_name='4o-mini'):
+        """
+        Initializes the GPTAssistant with the specified AI model.
+
+        Args:
+            model_name (str): The name of the AI model to use.
+        """
         self.model_name = model_name
         self.ai_model = AIModelFactory.get_model(model_name)
         self.full_response = ""
@@ -29,73 +41,86 @@ class GPTAssistant:
             "Which of our services or areas would you like to know more about?"
         ]
 
-    def generate_response(self, user_input):
+    def generate_response(self, user_input: str, context: str = '') -> dict:
+        """
+        Generates a response to the user's input by incorporating recent conversation context
+        and relevant information fetched from the database.
+
+        Args:
+            user_input (str): The latest input from the user.
+            context (str): The recent conversation context.
+
+        Returns:
+            dict: A dictionary containing the AI's response and a flag indicating if more information is available.
+        """
         logger.info(f"Generating response for user input: {user_input}")
-        context = self.get_context(user_input)
         
-        # Prepare a more robust prompt for the AI model
-        prompt = f"""You are an AI assistant for Think41, a technology consulting company with a product mindset. Your role is to act as a knowledgeable and helpful concierge for the Think41 website, providing a tour and relevant information about the company. Always maintain a professional, friendly, and helpful tone.
+        # Retrieve additional context using RAG
+        additional_context = self.get_context(user_input)
+        full_context = f"{context}\n\n{additional_context}".strip()
+        
+        # Construct the prompt with recent conversation history and guidelines
+        prompt = f"""You are an AI assistant for Think41, a technology consulting company with a product mindset. Your role is to provide knowledgeable and helpful information about the company. Always maintain a professional, friendly, and helpful tone.
 
-Current page: {self.current_page}
-Tour started: {"Yes" if self.is_tour_started else "No"}
+Recent conversation history:
+{full_context}
 
-Based on the following information about Think41, please respond to the user's input: '{user_input}'
-
-Context:
-{context}
+User's latest input: '{user_input}'
 
 Guidelines:
-1. Provide a concise initial response (50-75 words) that addresses the main point of the user's query.
-2. Follow the initial response with "Would you like to know more about this?" to offer additional information.
-3. If the user asks about Think41's services, founders, background, or any related information, focus on the most relevant details in the initial response.
-4. For website tours:
-   a. If the tour hasn't started and the user asks to start a tour, respond enthusiastically and mention that you'll guide them through the main sections (Home, Services, About Us, Contact).
-   b. If the tour is in progress and the user asks for the next step, provide information about the next section and how to navigate there.
-   c. Briefly mention the main sections (Home, Services, About Us, Contact) in the initial response when discussing the tour.
-5. If asked about navigating to a specific page, provide brief instructions in the initial response.
-6. For unrelated questions, politely redirect to Think41 topics in the initial response.
-7. Address inappropriate language with a brief, polite message about professional communication.
-8. If unsure, offer to help find information on the Think41 website or suggest contacting Think41 directly.
-9. Always maintain a professional, friendly, and helpful tone.
-10. If the user asks to end the tour, confirm that the tour has ended and offer to answer any other questions about Think41.
+1. Provide a concise response (50-75 words) that addresses the main point of the user's query.
+2. Use the conversation history to maintain context and provide relevant responses.
+3. If the user asks about Think41's services, founders, background, or any related information, focus on the most relevant details.
+4. For unrelated questions, politely redirect to Think41 topics.
+5. Address inappropriate language with a brief, polite message about professional communication.
+6. If unsure, offer to help find information on the Think41 website or suggest contacting Think41 directly.
+7. Always maintain a professional, friendly, and helpful tone.
 
-Initial Response:"""
+Response:"""
         
-        # Call the AI model to generate a response
+        # Generate AI response using the AI model
         ai_response = self.ai_model.generate_response(prompt)
         
         if ai_response:
-            # Remove the fixed phrase from the AI response
-            ai_response = ai_response.replace("Would you like to know more about this?", "").strip()
-            
-            # Choose a random engagement phrase
+            ai_response = ai_response.strip()
             engagement_phrase = random.choice(self.engagement_phrases)
-            
-            # Combine the AI response with the engagement phrase
             response = f"{ai_response}\n\n{engagement_phrase}"
-            
-            # Store the full response without the engagement phrase
             self.full_response = ai_response
         else:
-            response = "I apologize, but I'm having trouble generating a response at the moment. How else can I assist you with information about Think41 or help you navigate our website?"
+            response = "I apologize, but I'm having trouble generating a response at the moment. How else can I assist you with information about Think41?"
             self.full_response = ""
-
-        logger.info(f"Generated initial response: {response[:100]}...")  # Log first 100 chars of response
+        
+        logger.info(f"Generated response: {response[:100]}...")  # Log first 100 characters of the response
 
         return {
             "response": response,
-            "current_page": self.current_page,
-            "is_tour_started": self.is_tour_started,
             "has_more_info": bool(self.full_response)
         }
 
-    def get_more_info(self):
+    def get_more_info(self) -> dict:
+        """
+        Provides additional information based on the last generated response.
+
+        Returns:
+            dict: A dictionary containing the additional information response.
+        """
         if self.full_response:
             return {"response": self.full_response}
         else:
-            return {"response": "I'm sorry, but I don't have any additional information on this topic at the moment. Is there anything else you'd like me to elaborate on regarding Think41 or navigating our website?"}
+            return {
+                "response": "I'm sorry, but I don't have any additional information on this topic at the moment. Is there anything else you'd like me to elaborate on regarding Think41 or navigating our website?"
+            }
 
-    def get_context(self, user_input):
+    def get_context(self, user_input: str) -> str:
+        """
+        Retrieves relevant content from the database based on the user's input using RAG.
+
+        Args:
+            user_input (str): The latest input from the user.
+
+        Returns:
+            str: A concatenated string of relevant content titles and contents.
+        """
         relevant_content = self.search_relevant_content(user_input)
         context = ""
         
@@ -110,57 +135,151 @@ Initial Response:"""
 
         return context
 
-    def search_relevant_content(self, query):
-        logger.info(f"Searching for relevant content with query: {query}")
+    def search_relevant_content(self, query: str) -> List[UniversalContent]:
+        """
+        Searches for relevant content in the database using full-text search and trigram similarity.
+        Incorporates performance optimizations and error handling for production readiness.
 
-        # Create a more sophisticated search query
-        search_query = SearchQuery(query, config='english')
+        Args:
+            query (str): The search query derived from the user's input.
 
-        # Use both full-text search and trigram similarity
-        relevant_content = UniversalContent.objects.annotate(
-            rank=SearchRank(F('search_vector'), search_query) +
-                 Coalesce(SearchRank(SearchVector('title'), search_query), Value(0.0), output_field=FloatField()) * 1.5 +
-                 Coalesce(SearchRank(SearchVector('content'), search_query), Value(0.0), output_field=FloatField()),
-            trigram_similarity_title=TrigramSimilarity('title', query),
-            trigram_similarity_content=TrigramSimilarity('content', query)
-        ).filter(
-            Q(search_vector=search_query) |
-            Q(title__icontains=query) |
-            Q(content__icontains=query) |
-            Q(trigram_similarity_title__gt=0.1) |
-            Q(trigram_similarity_content__gt=0.1)
-        ).order_by('-rank', '-trigram_similarity_title', '-trigram_similarity_content')
+        Returns:
+            List[UniversalContent]: A list of top 5 relevant UniversalContent objects.
+        """
+        try:
+            logger.info(f"Searching for relevant content with query: {query}")
 
-        logger.info(f"Initial search found {relevant_content.count()} results")
+            # Normalize the query
+            normalized_query = query.lower().strip()
 
-        # If no results, try splitting the query into words and search again
-        if not relevant_content.exists():
-            logger.info("No results found, trying word-by-word search")
-            words = query.split()
-            q_objects = Q()
-            for word in words:
-                q_objects |= Q(title__icontains=word) | Q(content__icontains=word)
-            
-            relevant_content = UniversalContent.objects.filter(q_objects).distinct().annotate(
-                rank=SearchRank(F('search_vector'), SearchQuery(' '.join(words), config='english')) +
-                     Coalesce(SearchRank(SearchVector('title'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField()) * 1.5 +
-                     Coalesce(SearchRank(SearchVector('content'), SearchQuery(' '.join(words), config='english')), Value(0.0), output_field=FloatField()),
-                trigram_similarity_title=TrigramSimilarity('title', ' '.join(words)),
-                trigram_similarity_content=TrigramSimilarity('content', ' '.join(words))
-            ).order_by('-rank', '-trigram_similarity_title', '-trigram_similarity_content')
+            # Check cache first
+            cache_key = f"search_relevant_content:{normalized_query}"
+            cached_results = cache.get(cache_key)
+            if cached_results:
+                logger.info("Returning cached search results")
+                return cached_results
 
-            logger.info(f"Word-by-word search found {relevant_content.count()} results")
+            # Create a full-text search query
+            search_query = SearchQuery(normalized_query, config='english')
 
-        results = relevant_content[:5]  # Return top 5 results
-        logger.info(f"Returning top {len(results)} results")
-        
-        # Log the titles of the results for debugging
-        for result in results:
-            logger.info(f"Result: {result.title} (Rank: {result.rank}, Trigram Sim Title: {result.trigram_similarity_title}, Trigram Sim Content: {result.trigram_similarity_content})")
+            # Annotate the queryset with relevance scores
+            relevant_content = UniversalContent.objects.annotate(
+                search_rank=Coalesce(SearchRank(F('search_vector'), search_query), Value(0.0)),
+                title_rank=Coalesce(
+                    SearchRank(
+                        F('search_vector'),
+                        SearchQuery(normalized_query, config='english', search_type='phrase')
+                    ), Value(0.0)
+                ),
+                content_rank=Coalesce(SearchRank(F('search_vector'), search_query), Value(0.0)),
+                trigram_similarity_title=TrigramSimilarity('title', normalized_query),
+                trigram_similarity_content=TrigramSimilarity('content', normalized_query),
+                combined_rank=ExpressionWrapper(
+                    F('search_rank') * 2 +
+                    F('title_rank') * 3 +
+                    F('content_rank') * 1.5 +
+                    Greatest(F('trigram_similarity_title') * 2, F('trigram_similarity_content')),
+                    output_field=FloatField()
+                )
+            ).filter(
+                Q(search_vector=search_query) |
+                Q(title__icontains=normalized_query) |
+                Q(content__icontains=normalized_query) |
+                Q(trigram_similarity_title__gt=0.1) |
+                Q(trigram_similarity_content__gt=0.1)
+            ).order_by('-combined_rank').only('id', 'title', 'content')  # Select only necessary fields
 
-        return results
+            found_results = relevant_content.count()
+            logger.info(f"Initial search found {found_results} results")
 
-def gpt_assistant(prompt, prompt_type='create', model_name='4o-mini'):
+            # If no results or low-quality results, try word-by-word search
+            if not relevant_content.exists() or relevant_content.first().combined_rank < 0.1:
+                logger.info("No results or low-quality results found, trying word-by-word search")
+                words = normalized_query.split()
+                q_objects = Q()
+                for word in words:
+                    q_objects |= Q(title__icontains=word) | Q(content__icontains=word)
+                
+                word_query = ' '.join(words)
+                word_search_query = SearchQuery(word_query, config='english')
+
+                word_by_word_content = UniversalContent.objects.filter(q_objects).distinct().annotate(
+                    search_rank=Coalesce(SearchRank(F('search_vector'), word_search_query), Value(0.0)),
+                    title_rank=Coalesce(
+                        SearchRank(
+                            F('search_vector'),
+                            SearchQuery(word_query, config='english', search_type='phrase')
+                        ), Value(0.0)
+                    ),
+                    content_rank=Coalesce(SearchRank(F('search_vector'), word_search_query), Value(0.0)),
+                )
+
+                # Handle trigram similarity for single and multiple words
+                if len(words) == 1:
+                    word_by_word_content = word_by_word_content.annotate(
+                        trigram_similarity_title=TrigramSimilarity('title', words[0]),
+                        trigram_similarity_content=TrigramSimilarity('content', words[0])
+                    )
+                else:
+                    word_by_word_content = word_by_word_content.annotate(
+                        trigram_similarity_title=Greatest(*[
+                            TrigramSimilarity('title', word) for word in words
+                        ]),
+                        trigram_similarity_content=Greatest(*[
+                            TrigramSimilarity('content', word) for word in words
+                        ])
+                    )
+
+                relevant_content = word_by_word_content.annotate(
+                    combined_rank=ExpressionWrapper(
+                        F('search_rank') * 2 +
+                        F('title_rank') * 3 +
+                        F('content_rank') * 1.5 +
+                        Greatest(F('trigram_similarity_title') * 2, F('trigram_similarity_content')),
+                        output_field=FloatField()
+                    )
+                ).filter(
+                    combined_rank__gt=0.01  # Apply minimum rank threshold
+                ).order_by('-combined_rank').only('id', 'title', 'content')
+
+                word_found_results = relevant_content.count()
+                logger.info(f"Word-by-word search found {word_found_results} results")
+
+            # Final filtering and limiting to top 5 results
+            results = relevant_content.filter(combined_rank__gt=0.01)[:5]
+            logger.info(f"Returning top {len(results)} results")
+
+            # Log the titles of the results for debugging
+            for result in results:
+                logger.info(
+                    f"Result: {result.title} (Combined Rank: {result.combined_rank:.4f}, "
+                    f"Search Rank: {result.search_rank:.4f}, Title Rank: {result.title_rank:.4f}, "
+                    f"Content Rank: {result.content_rank:.4f}, "
+                    f"Trigram Sim Title: {result.trigram_similarity_title:.4f}, "
+                    f"Trigram Sim Content: {result.trigram_similarity_content:.4f})"
+                )
+
+            # Cache the results for future identical queries
+            cache.set(cache_key, list(results), timeout=60*5)  # Cache for 5 minutes
+
+            return list(results)
+
+        except Exception as e:
+            logger.error(f"Error during search_relevant_content: {e}", exc_info=True)
+            return []
+
+def gpt_assistant(prompt: str, prompt_type: str = 'create', model_name: str = '4o-mini') -> dict:
+    """
+    Convenience function to generate a response using the GPTAssistant class.
+
+    Args:
+        prompt (str): The user input prompt.
+        prompt_type (str): The type of prompt (default is 'create').
+        model_name (str): The name of the AI model to use.
+
+    Returns:
+        dict: The generated response from the assistant.
+    """
     assistant = GPTAssistant(model_name=model_name)
     return assistant.generate_response(prompt)
 
