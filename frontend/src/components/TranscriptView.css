@@ -1,0 +1,84 @@
+.transcript-container {
+  width: 300px;
+  max-height: 400px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.transcript-container.hidden {
+  height: 0;
+}
+
+.transcript-container.visible {
+  height: 400px;
+}
+
+.transcript-toggle {
+  margin-bottom: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.transcript-content {
+  padding: 10px;
+  overflow-y: auto;
+  height: calc(100% - 40px);
+}
+
+.transcript-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transcript-entry {
+  background-color: white;
+  padding: 5px;
+  border-radius: 4px;
+  color: #333;
+}
+
+.transcript-timestamp {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.transcript-speaker {
+  font-weight: bold;
+  margin-right: 5px;
+  color: #007bff;
+}
+
+.transcript-text {
+  word-break: break-word;
+  color: #333;
+}
+
+.transcript-wrapper {
+  position: fixed;
+  left: 20px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 1000;
+}
+
+.transcript-toggle-container {
+  margin-bottom: 10px;
+}

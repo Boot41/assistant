@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { useTranscript } from './useTranscript';
 
 export function useChat() {
   const [currentPage, setCurrentPage] = useState(null);
@@ -17,6 +18,15 @@ export function useChat() {
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(null);
   const speechSynthesisRef = useRef(window.speechSynthesis);
+  const stopSpeakingRef = useRef(null);
+
+  const { transcript, addToTranscript, clearTranscript, getTranscriptAsJSON, setSearchTerm, setStartDate, setEndDate, exportTranscript } = useTranscript();
+
+  const stopSpeaking = useCallback(() => {
+    if (stopSpeakingRef.current) {
+      stopSpeakingRef.current();
+    }
+  }, []);
 
   useEffect(() => {
     setChatHistory([{ role: 'assistant', content: "Hello! I'm Echo, your AI assistant. How can I help you today?" }]);
@@ -70,8 +80,17 @@ export function useChat() {
       const sentences = processedText.split(/(?<=[.!?])\s+/);
 
       let currentSentence = 0;
+      let isStopped = false;
+
+      stopSpeakingRef.current = () => {
+        isStopped = true;
+        speechSynthesisRef.current.cancel();
+        setIsSpeaking(false);
+      };
 
       const speakNextSentence = () => {
+        if (isStopped) return;
+
         if (currentSentence < sentences.length) {
           const utterance = new SpeechSynthesisUtterance(sentences[currentSentence]);
           
@@ -212,6 +231,7 @@ export function useChat() {
     setIsLoading(true);
     const newUserMessage = { role: 'user', content: userInput };
     setChatHistory(prevHistory => [...prevHistory, newUserMessage]);
+    addToTranscript('User', userInput, Date.now());
 
     try {
       const tourCommand = checkForTourCommands(userInput);
@@ -223,6 +243,7 @@ export function useChat() {
         const youtubeResponse = await handleYouTubeCommand(userInput);
         const newAssistantMessage = { role: 'assistant', content: youtubeResponse };
         setChatHistory(prevHistory => [...prevHistory, newAssistantMessage]);
+        addToTranscript('Assistant', youtubeResponse, Date.now());
         speakResponse(youtubeResponse);
       } else {
         const response = await axios.post('http://localhost:8000/api/chat/', {
@@ -233,6 +254,7 @@ export function useChat() {
 
         const newAssistantMessage = { role: 'assistant', content: response.data.response };
         setChatHistory(prevHistory => [...prevHistory, newAssistantMessage]);
+        addToTranscript('Assistant', response.data.response, Date.now());
         speakResponse(response.data.response);
 
         if (response.data.current_page && response.data.current_page !== currentPage) {
@@ -248,10 +270,11 @@ export function useChat() {
     } catch (error) {
       console.error('Error sending message:', error);
       setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      addToTranscript('Assistant', 'Sorry, I encountered an error. Please try again.', Date.now());
     } finally {
       setIsLoading(false);
     }
-  }, [userInput, currentPage, isTourStarted, checkForTourCommands, startTour, handleNextStep]);
+  }, [userInput, currentPage, isTourStarted, checkForTourCommands, startTour, handleNextStep, addToTranscript]);
 
   const handleYouTubeCommand = async (input) => {
     try {
@@ -289,5 +312,13 @@ export function useChat() {
     voices,
     selectedVoice,
     setSelectedVoice,
+    stopSpeaking,
+    transcript,
+    clearTranscript,
+    getTranscriptAsJSON,
+    setSearchTerm,
+    setStartDate,
+    setEndDate,
+    exportTranscript,
   };
 }
