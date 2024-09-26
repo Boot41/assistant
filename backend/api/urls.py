@@ -15,23 +15,23 @@ from .website_call import website_interaction  # Add this import
 
 urlpatterns = [
     # Tour related endpoints
-    path('tour/start/', start_tour, name='start_tour'),
-    path('tour/next/', next_tour_step, name='next_tour_step'),
-    path('tour/navigate/', navigate_to_page, name='navigate_to_page'),
-    path('tour-steps/', views.get_tour_steps, name='get_tour_steps'),
+    # path('tour/start/', start_tour, name='start_tour'),
+    # path('tour/next/', next_tour_step, name='next_tour_step'),
+    # path('tour/navigate/', navigate_to_page, name='navigate_to_page'),
+    # path('tour-steps/', views.get_tour_steps, name='get_tour_steps'),
     
     # Chat interaction endpoint
     path('chat/', views.chat_interaction, name='chat_interaction'),
     
     # Initial page endpoint
-    path('initial-page/', views.get_initial_page, name='get_initial_page'),
+    # path('initial-page/', views.get_initial_page, name='get_initial_page'),
     
     # YouTube command endpoint
     path('youtube/', handle_youtube_command, name='handle_youtube_command'),
     
-    # User related endpoints
-    path('login/', user_login, name='user_login'),
-    path('logout/', user_logout, name='user_logout'),
+    # # User related endpoints
+    # path('login/', user_login, name='user_login'),
+    # path('logout/', user_logout, name='user_logout'),
 
     # Unused endpoints (not currently used in the frontend)
     # ====================================================
